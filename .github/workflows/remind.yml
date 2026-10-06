@@ -1,0 +1,45 @@
+# WORK: кожні 5 хвилин перевіряє нагадування й надсилає пуш через ntfy.
+# Код лежить тут (публічний репозиторій — безкоштовні хвилини без обмежень),
+# а ДАНІ — у приватному репозиторії work-data, звідки їх бере токен із секрету DATA_TOKEN.
+name: WORK
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}   # кнопка «Run workflow» для ручної перевірки
+
+concurrency:
+  group: work
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Код
+        uses: actions/checkout@v4
+
+      - name: Дані з приватного репозиторію
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/work-data
+          token: ${{ secrets.DATA_TOKEN }}
+          path: data
+
+      - name: Перевірити нагадування
+        run: node scripts/check.js
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          DATA_DIR: data
+
+      - name: Зберегти стан (у приватний репозиторій)
+        working-directory: data
+        run: |
+          if [ -n "$(git status --porcelain state.json)" ]; then
+            git config user.name "work-bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add state.json
+            git commit -m "Стан нагадувань"
+            git pull --rebase
+            git push
+          fi
