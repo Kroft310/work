@@ -1,0 +1,1785 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>WORK</title>
+<meta name="apple-mobile-web-app-title" content="WORK">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏰</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  /* Палітра: чорний фон, бірюзовий акцент, строгі форми */
+  :root {
+    --bg: #000000; --card: #0E0E0E; --ink: #EDEDED; --muted: #8A8A8A;
+    --line: #262626; --accent: #19D3C5; --on-accent: #000000; --danger: #FF5A4E;
+    color-scheme: dark;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 400 16px/1.5 Manrope, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 20px 16px 96px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    margin-bottom: 20px; padding-bottom: 14px; border-bottom: 2px solid var(--accent);
+    /* Закріплена вгорі: під нею прокручується все інше. Фон потрібен, щоб вміст не просвічував */
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--bg);
+    padding-top: 12px; margin-top: -12px; }
+  h1 { font-size: 28px; font-weight: 800; margin: 0; letter-spacing: -0.02em; }
+  .today { color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; }
+  #today { white-space: nowrap; }   /* дата не рветься; якщо тісно — годинник переноситься нижче */
+  .clock { color: var(--accent); font-weight: 800; font-size: 16px; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+  button { font: inherit; cursor: pointer; border: 0; border-radius: 0; }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .ghost { background: transparent; color: var(--muted); padding: 6px 10px; }
+  .ghost:hover { color: var(--accent); }
+  .primary { background: var(--accent); color: var(--on-accent); font-weight: 700; padding: 12px 18px; }
+  .note { background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--accent); padding: 12px 14px; margin-bottom: 16px; font-size: 14px; color: var(--muted); }
+  .err { border-left-color: var(--danger); color: var(--danger); }
+
+  /* Рядок нагадування: великий час зліва — головний акцент */
+  .swipe { position: relative; overflow: hidden; border-bottom: 1px solid var(--line); }
+  .item { position: relative; display: grid; grid-template-columns: 32px 92px 1fr auto; gap: 14px; align-items: center;
+    padding: 14px 0; background: var(--bg); transition: transform .2s ease; touch-action: pan-y; }
+  .item.dragging { transition: none; }
+  /* Комп'ютер: кнопка видалення біля лівого краю рядка */
+  .rm-left { width: 32px; height: 32px; background: transparent; border: 1px solid var(--line); color: var(--muted); font-size: 16px; line-height: 1; }
+  .rm-left:hover { border-color: var(--danger); color: var(--danger); }
+  /* Телефон: кнопка ховається під рядком і відкривається свайпом уліво */
+  .swipe-del { position: absolute; top: 0; right: 0; bottom: 0; width: 108px; font-size: 15px;
+    background: var(--danger); color: #000; font-weight: 700; display: none; }
+  @media (hover: none) and (pointer: coarse) {
+    .item { grid-template-columns: 92px 1fr auto; }
+    .rm-left { display: none; }
+    .swipe-del { display: block; }
+  }
+  .time { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; color: var(--accent); }
+  .title { font-weight: 600; overflow-wrap: anywhere; }
+  .rule { font-size: 14px; color: var(--muted); }
+  .next { font-size: 13px; display: inline-block; margin-top: 4px; padding: 1px 8px; border: 1px solid var(--accent); color: var(--accent); }
+  .off .time { color: var(--muted); }
+  .off .time, .off .title { opacity: .45; }
+  .off .next { border-color: var(--line); color: var(--muted); }
+  .next.late { border-color: var(--danger); color: var(--danger); }
+  .acts { display: grid; gap: 6px; justify-items: end; }
+  .toast { position: fixed; left: 16px; right: 92px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); max-width: 420px;
+    background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+    padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; }
+  .toast button { background: transparent; color: var(--accent); font-weight: 700; padding: 4px 0; }
+  .danger { background: var(--danger); color: #000; font-weight: 700; padding: 12px 18px; }
+  .head-btns { display: flex; flex-wrap: wrap; justify-content: flex-end; }
+  /* Статистика */
+  dialog.wide { width: min(640px, calc(100% - 16px)); max-height: calc(100% - 32px); }
+  .stats { padding: 20px; display: grid; gap: 16px; }
+  /* Шапка вікна теж закріплена: «Закрити» завжди під рукою */
+  .dlg-head { position: sticky; top: 0; z-index: 5; background: var(--card); margin: -20px -20px 0; padding: 20px 20px 12px; border-bottom: 1px solid var(--line); }
+  .stats > * { min-width: 0; }  /* інакше довгий вміст розпирає всю сітку і правий край обрізається */
+  .nums { display: grid; grid-template-columns: repeat(2, 1fr); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+  .num { padding: 10px 12px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .num b { display: block; font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .num span { font-size: 13px; color: var(--muted); }
+  .c-ok { color: #3DDC84; } .c-late { color: #F2B33D; } .c-miss { color: var(--danger); }
+  .bar { display: flex; height: 10px; background: var(--line); }
+  .bar i { display: block; height: 100%; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .stats h3 { margin: 0 0 6px; font-size: 15px; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .tbl th, .tbl td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .tbl th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  .tbl th.n { text-align: right; white-space: nowrap; }
+  .tbl td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tbl-wrap { overflow-x: auto; }
+  .period-cap { font-size: 13px; color: var(--muted); margin-top: -8px; }
+  .num b small.of { font-size: 15px; color: var(--muted); font-weight: 600; }
+  .log-btn { width: 100%; }
+  .log-grid { display: grid; gap: 24px; }
+  .log-grid h3 { margin: 0 0 6px; font-size: 15px; }
+  @media (min-width: 1100px) { .log-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); align-items: start; gap: 40px; } }
+  /* Завантаженість */
+  .seg.mini { grid-template-columns: repeat(2, auto); }
+  .seg.mini button { padding: 4px 10px; font-size: 13px; }
+  .nums.n3 { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 10px; }
+  @media (min-width: 480px) { .nums.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }  /* на телефоні 2 колонки, щоб слова не рвались */
+  .nums.n3 .num b { font-size: 24px; }
+  .tip { margin: 10px 0 0; font-size: 14px; border-left: 3px solid var(--accent); padding: 6px 10px; background: var(--bg); }
+  .load-day { border: 1px solid var(--line); padding: 10px 12px; margin-top: 10px; }
+  .load-day h3 { font-size: 14px; }
+  .load-day .day-row span { font-size: 14px; }
+  .mt { margin-top: 18px !important; }
+  /* Графіки */
+  .chart-card { background: linear-gradient(180deg, #111 0%, #070707 100%); border: 1px solid var(--line); padding: 10px 8px 4px; margin-top: 10px; }
+  svg.bars, svg.clock { display: block; width: 100%; height: auto; overflow: visible; }
+  svg .grid { stroke: var(--line); stroke-width: 1; }
+  svg .ax { fill: var(--muted); font-size: 10px; font-family: inherit; }
+  svg .xl { fill: var(--muted); font-size: 11px; font-family: inherit; }
+  svg .val { fill: var(--ink); font-size: 11px; font-weight: 700; font-family: inherit; }
+  svg .cap { fill: #9FFFF7; opacity: .9; }
+  svg .heavy .cap { fill: #FFE3A8; }
+  svg .zero { fill: var(--line); }
+  svg .avg { stroke: #fff; stroke-opacity: .5; stroke-dasharray: 4 4; }
+  svg .avg-t { fill: #fff; opacity: .85; paint-order: stroke; stroke: #0a0a0a; stroke-width: 4px; }
+  svg .tmark { fill: var(--ink); }
+  svg .today .xl { fill: var(--ink); font-weight: 800; }
+  svg .hit { fill: transparent; }
+  svg .bc[data-k] { cursor: pointer; }
+  svg .bc[data-k]:hover .hit { fill: rgba(25, 211, 197, .06); }
+  svg .sel .hit { fill: rgba(25, 211, 197, .14); }
+  svg .sel .b { filter: url(#glow); }
+  svg .sel .xl { fill: var(--accent); font-weight: 800; }
+  svg.anim .b { transform-box: fill-box; transform-origin: bottom; animation: grow .6s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes grow { from { transform: scaleY(0); } }
+  .ck-track { fill: #141414; }
+  .ck-seg { filter: drop-shadow(0 0 4px rgba(25, 211, 197, .35)); }
+  svg.clock.anim .ck-seg { transform-origin: 110px 110px; animation: pop .7s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes pop { from { transform: scale(.5); opacity: 0; } }
+  .clock-card { padding: 16px 8px; }
+  .clock-card svg { max-width: 260px; margin: 0 auto; }
+  /* Кільця */
+  .donut-row { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 14px; align-items: center; margin-top: 10px; }
+  svg.donut { width: 120px; height: 120px; display: block; }
+  svg.donut.anim .dn-seg { animation: dash .8s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes dash { from { stroke-dasharray: 0 999; } }
+  .dn-big { fill: var(--ink); font-size: 26px; font-weight: 800; font-family: inherit; }
+  .dn-small { fill: var(--muted); font-size: 11px; font-family: inherit; }
+  .dn-legend { display: grid; gap: 8px; min-width: 0; }
+  .dn-legend > div { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto auto; gap: 8px; align-items: baseline; font-size: 14px; }
+  .dn-legend i { width: 10px; height: 10px; align-self: center; }
+  .dn-legend span { overflow-wrap: anywhere; }
+  .dn-legend span small { display: block; font-size: 12px; }
+  .dn-legend b { font-variant-numeric: tabular-nums; }
+  .dn-legend > div > small { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .legend .lg { display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; }
+  .legend .lg.line { height: 0; border-top: 1px dashed #fff; opacity: .6; vertical-align: 3px; }
+  #statsBody { display: grid; gap: 16px; }
+  /* Картки статистики */
+  .st-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-left: auto; margin-right: 8px; }
+  .st-tools .seg { grid-template-columns: repeat(4, auto); }
+  .st-tools .seg button { padding: 6px 12px; font-size: 13px; }
+  .log-link { border: 1px solid var(--line); color: var(--ink); padding: 6px 12px; font-size: 13px; }
+  .log-link span { color: var(--accent); font-weight: 800; margin-left: 4px; }
+  .log-link:hover { border-color: var(--accent); }
+  .st-grid { display: grid; gap: 16px; }
+  .st-grid > * { min-width: 0; }
+  .st-dist, .st-left { display: grid; gap: 16px; align-content: start; min-width: 0; }
+  /* Телефон: порядок карток — Виконання, Наперед, Що займає, дні тижня, години */
+  @media (max-width: 1099px) {
+    .st-left { display: contents; }
+    .card-exec { order: 1; } .card-load { order: 2; } .st-left > .card:not(.card-exec) { order: 3; } .st-dist { order: 4; }
+  }
+  .card { background: #0B0B0B; border: 1px solid var(--line); border-top: 2px solid var(--accent); padding: 14px 16px 16px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+  .card-h { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card-h h3 { margin: 0; font-size: 16px; }
+  .card-h .rule { font-size: 13px; }
+  .exec { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 16px; align-items: center; }
+  .exec svg.donut { width: 140px; height: 140px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+  .kpis.k3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .kpi { padding: 8px 10px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-width: 0; }
+  .kpi b { display: block; font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .dn-legend span small.rule { display: block; font-size: 11px; }
+  .card .tip { margin: 0; }
+  .card .legend { margin-top: -4px; }
+  .card .chart-card { margin-top: 0; }
+  .card .load-day { margin-top: 0; }
+  @media (max-width: 480px) {
+    .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .kpis.k3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    /* Телефон: кільце над легендою, щоб назви не рвались по літерах */
+    .exec, .card .donut-row { grid-template-columns: 1fr; justify-items: center; gap: 12px; }
+    .exec .dn-legend, .card .donut-row .dn-legend { width: 100%; }
+    .exec svg.donut, .card svg.donut { width: 130px; height: 130px; }
+    .kpi b { font-size: 20px; white-space: nowrap; }
+    .st-tools { order: 3; width: 100%; margin: 6px 0 0; }
+    .dlg-head { flex-wrap: wrap; }
+  }
+  @media (min-width: 1100px) {
+    /* Комп'ютер: зверху «Виконання» і «Наперед» поруч, знизу три графіки розподілу */
+    .st-grid { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; align-items: start; }
+    .st-dist { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+    .st-left { gap: 20px; }
+    .exec { grid-template-columns: 170px minmax(0, 1fr); }
+    .exec svg.donut { width: 170px; height: 170px; }
+  }
+  #statsBody > * { min-width: 0; }
+
+  /* ===== Комп'ютер: на весь екран ===== */
+  @media (min-width: 1100px) {
+    .wrap { max-width: none; padding: 24px 40px 40px; }
+    /* Календар зліва (стоїть на місці), список справ справа */
+    .layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 40px; align-items: start; }
+    .layout .cal { position: sticky; top: calc(var(--head-h, 90px) + 12px); margin-bottom: 0;
+      /* Якщо календар із панеллю дня вищий за екран — прокручується сам, не ховаючись під шапкою */
+      max-height: calc(100vh - var(--head-h, 90px) - 80px); overflow-y: auto; scrollbar-width: thin; }  /* 80 = відступ під шапкою + нижній відступ сторінки */
+
+    .fab { right: 32px; bottom: 32px; width: 64px; height: 64px; font-size: 34px; }
+    .fab-menu { right: 32px; bottom: 108px; }
+    /* Статистика й журнал — на весь екран */
+    dialog.wide { width: calc(100vw - 32px); height: calc(100vh - 32px); max-width: none; max-height: none; }
+    .stats { padding: 24px 32px; }
+    .dlg-head { margin: -24px -32px 0; padding: 24px 32px 14px; }
+    .donut-row { grid-template-columns: 150px minmax(0, 1fr); }
+    svg.donut { width: 150px; height: 150px; }
+    .nums.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (prefers-reduced-motion: reduce) { svg .b, svg .dn-seg, svg .ck-seg { animation: none !important; } }
+  .hb { display: grid; grid-template-columns: 96px 1fr 40px; gap: 8px; align-items: center; font-size: 13px; padding: 3px 0; }
+  .hb.wide { grid-template-columns: minmax(0, 1.3fr) 1fr 64px; }
+  .hb span { color: var(--muted); overflow-wrap: anywhere; }
+  .hb.wide > span { color: var(--ink); }
+  .hb div { height: 8px; background: var(--line); }
+  .hb i { display: block; height: 100%; background: var(--accent); }
+  .hb b { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+  .st { font-size: 12px; padding: 1px 6px; border: 1px solid currentColor; white-space: nowrap; }
+  /* Календар */
+  .cal { margin-bottom: 24px; }
+  .cal-card { background: linear-gradient(180deg, #0D0D0D 0%, #050505 100%); border: 1px solid var(--line); padding: 14px 12px 12px; }
+  .cal-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .cal-title { white-space: nowrap; }   /* назва не стискається під кнопки — якщо не влазить, кнопки переносяться */
+  .cal-m { font-size: 23px; font-weight: 800; letter-spacing: -0.02em; }
+  .cal-y { font-size: 23px; font-weight: 400; color: var(--muted); margin-left: 8px; }
+  .cal-sum { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .cal-navs { display: flex; gap: 6px; flex-shrink: 0; }
+  .cal-nav { width: 38px; height: 38px; background: transparent; border: 1px solid var(--line); color: var(--ink); font-size: 20px; line-height: 1; }
+  .cal-nav:hover, .cal-today:hover { border-color: var(--accent); color: var(--accent); }
+  .cal-today { height: 38px; padding: 0 10px; background: transparent; border: 1px solid var(--line); color: var(--ink); font-size: 13px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+  .cal-grid.slide-l { animation: slideL .28s ease-out; }
+  .cal-grid.slide-r { animation: slideR .28s ease-out; }
+  @keyframes slideL { from { opacity: 0; transform: translateX(24px); } }
+  @keyframes slideR { from { opacity: 0; transform: translateX(-24px); } }
+  .cal-wd { padding: 2px 0 6px; text-align: center; font-size: 12px; color: var(--muted); font-weight: 600; }
+  .cal-wd.we { color: var(--accent); opacity: .8; }
+
+  .cal-day { position: relative; aspect-ratio: 1 / 1.05; min-width: 0; background: #111; color: var(--ink); text-align: left;
+    padding: 6px 4px 5px 6px; border: 1px solid transparent; display: flex; flex-direction: column; overflow: hidden; transition: border-color .15s, background .15s; }
+  .cal-day:hover { border-color: #3a3a3a; }
+  .cal-day.we { background: #0E1413; }
+  .cal-day.other { opacity: .28; }
+  .cal-day.past:not(.today) .cd-num { color: var(--muted); }
+  .cd-num { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1; }
+  .cal-day.today { border-color: var(--accent); background: #0A1F1D; }
+  .cal-day.today .cd-num { color: var(--accent); font-weight: 800; }
+  .cal-day.sel { background: linear-gradient(160deg, #3FF0E2 0%, #19D3C5 45%, #0B8F86 100%); border-color: transparent; box-shadow: 0 0 18px rgba(25, 211, 197, .35); }
+  .cal-day.sel .cd-num { color: #000; font-weight: 800; }
+
+  /* Куточок: прострочено / усе виконано */
+  .cd-flags { position: absolute; top: 5px; right: 5px; display: flex; gap: 2px; align-items: center; }
+  .cd-flags .ck { display: none; }   /* на телефоні галочки внизу клітинки, у куті — лише червоний квадратик */
+  /* Галочка в чорному квадратику — однаково видно і на звичайній, і на бірюзовій (вибраній) клітинці */
+  .ck { width: 13px; height: 13px; display: grid; place-items: center; background: #000; font-style: normal; font-size: 10px; font-weight: 900; line-height: 1; }
+  .ck.ok { color: #3DDC84; box-shadow: inset 0 0 0 1px rgba(61, 220, 132, .45); }
+  .ck.lt { color: #F2B33D; box-shadow: inset 0 0 0 1px rgba(242, 179, 61, .45); }
+  .ck.nd { color: var(--danger); box-shadow: inset 0 0 0 1px rgba(255, 90, 78, .45); }
+
+  /* Смужка навантаження: сегмент на кожну справу */
+  .cd-load { margin-top: auto; display: flex; gap: 1px; align-items: center; height: 11px; }
+  /* На телефоні галочки без квадратика — так три влазять навіть у клітинку шириною ~40px */
+  .cd-load i.ck { flex: none; width: auto; height: auto; max-width: none; background: transparent; box-shadow: none; font-size: 10px; padding: 0; }
+  .sel .cd-load i.ck { background: #000; }   /* інакше правило для сегментів сплющує галочку до 4px */
+  .cd-load i { flex: 0 0 9px; height: 4px; }   /* фіксована ширина: інакше поруч із галочками сегмент стискався до нуля */
+  .cd-load em { font-style: normal; font-size: 10px; color: var(--muted); margin-left: 2px; }
+  .seg-next { background: var(--accent); }
+  .seg-done { background: rgba(61, 220, 132, .35); box-shadow: inset 0 0 0 1px #3DDC84; }        /* виконано вчасно */
+  .seg-donelate { background: rgba(242, 179, 61, .35); box-shadow: inset 0 0 0 1px #F2B33D; }   /* виконано із запізненням */
+  .seg-late { background: var(--danger); }
+  .busy .seg-next { background: #F2B33D; }
+  .sel .cd-load i { background: rgba(0, 0, 0, .75); box-shadow: none; }
+  .sel .cd-load em { color: #000; }
+  .cd-chips { display: none; }
+  .cd-more { display: none; }
+
+  /* Панель вибраного дня */
+  .cal-panel { border: 1px solid var(--line); border-top: 0; background: #0A0A0A; padding: 12px; }
+  .cp-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .cp-day { font-size: 34px; font-weight: 800; color: var(--accent); line-height: 1; font-variant-numeric: tabular-nums; min-width: 42px; }
+  .cp-date { display: grid; line-height: 1.25; }
+  .cp-date b { font-size: 16px; text-transform: capitalize; }
+  .cp-date span { font-size: 13px; color: var(--muted); }
+  .cp-count { margin-left: auto; font-size: 13px; color: var(--muted); }
+  .cp-row { width: 100%; display: grid; grid-template-columns: 58px minmax(0, 1fr) auto; gap: 10px; align-items: start;
+    background: #121212; border: 0; border-left: 3px solid var(--accent); color: var(--ink); text-align: left; padding: 9px 10px; margin-top: 6px; }
+  .cp-row:hover { background: #171717; }
+  .cp-row.s-done { border-left-color: #2f5f5b; }
+  .cp-row.s-done .cp-title { color: var(--muted); text-decoration: line-through; }
+  .cp-row.s-late { border-left-color: var(--danger); }
+  .cp-time { font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .cp-row.s-late .cp-time { color: var(--danger); }
+  .cp-row.s-done .cp-time { color: var(--muted); }
+  .cp-body { display: grid; min-width: 0; }
+  .cp-title { overflow-wrap: anywhere; }
+  .cp-sub { font-size: 12px; color: var(--muted); }
+  .cp-right { display: grid; gap: 4px; justify-items: end; align-self: center; }
+  .cp-done { background: transparent; border: 1px solid var(--accent); color: var(--accent); font-weight: 700; font-size: 13px; padding: 6px 12px; white-space: nowrap; }
+  .cp-done:hover { background: var(--accent); color: #000; }
+  .cp-done.task { border-color: #FF8A3D; color: #FF8A3D; }
+  .cp-done.task:hover { background: #FF8A3D; color: #000; }
+  .cp-undo { background: transparent; border: 0; color: var(--muted); font-size: 12px; padding: 0; text-decoration: underline; cursor: pointer; }
+  .cp-undo:hover { color: var(--ink); }
+  .cp-row { cursor: pointer; }
+  .cp-tag { font-size: 11px; padding: 1px 6px; border: 1px solid currentColor; white-space: nowrap; align-self: center; }
+  .cp-tag.done { color: #3DDC84; }
+  .cp-tag.donelate { color: #F2B33D; }
+  .cp-tag.late { color: var(--danger); }
+  .cd-work { display: block; font-size: 10px; font-weight: 700; color: #B48CFF; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal-day.sel .cd-work { color: #2B1360; }
+  .cp-row.s-work { border-left-color: #B48CFF; }
+  .cp-row.s-work .cp-time { color: #B48CFF; }
+  .cp-tag.work { color: #B48CFF; }
+  .cp-empty { color: var(--muted); font-size: 14px; padding: 6px 0 2px; }
+  /* Календар на комп'ютері. Стоїть ПІСЛЯ основних стилів календаря, інакше вони перекривають ці правила */
+  @media (min-width: 1100px) {
+    .cal-card { padding: 18px 16px 16px; }
+    .cal-m, .cal-y { font-size: 32px; }
+    .cal-grid { gap: 4px; }
+    .cal-day { aspect-ratio: auto; height: clamp(72px, 9.5vh, 112px); padding: 8px; }
+    .cd-num { font-size: 17px; }
+    .cd-chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; margin-top: 6px; min-width: 0; }   /* час у дві колонки — до 4 у клітинці */
+    .chip { display: block; text-align: center; font-size: 11px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.3; padding: 2px 1px; background: rgba(25, 211, 197, .12); border-left: 2px solid var(--accent);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+    .chip b { font-weight: 700; color: var(--accent); }
+    .chip.s-late { background: rgba(255, 90, 78, .12); border-left-color: var(--danger); }
+    .chip.s-late b { color: var(--danger); }
+    .chip.s-done { background: transparent; border-left-color: #2f5f5b; color: var(--muted); text-decoration: line-through; }
+    .chip.s-done b { color: var(--muted); }
+    .sel .chip { background: rgba(0, 0, 0, .22); border-left-color: #000; color: #000; text-decoration: none; }
+    .sel .chip b { color: #000; }
+    .cd-load { display: none; }
+    .cd-flags .ck { display: grid; }   /* на комп'ютері галочки в куті, в один ряд */
+    .ck { width: 15px; height: 15px; font-size: 11px; }
+    .cd-more { display: inline; font-size: 11px; font-weight: 700; color: var(--muted); margin-left: 6px; vertical-align: 2px; }   /* «ще N» біля числа, щоб не вилазило */
+    .cd-more.m2 { display: none; }
+    /* Вузька клітинка (невеликий монітор): час в одну колонку, до 2 штук, далі «+N» */
+    .cal-day { container-type: inline-size; }
+    @container (max-width: 80px) {   /* дві колонки по «11:00» потребують ~80px */
+      .cd-chips { grid-template-columns: 1fr; }
+      .chip:nth-child(n+3) { display: none; }
+      .cd-more.m4 { display: none; }
+      .cd-more.m2 { display: inline; }
+    }
+    .sel .cd-more { color: #000; }
+  }
+  .day-row .ok { color: var(--muted); }
+  .day-list { border: 1px solid var(--line); border-top: 0; padding: 10px 12px; }
+  .day-list h3 { margin: 0 0 6px; font-size: 14px; color: var(--muted); font-weight: 600; }
+  .day-row { display: flex; gap: 12px; padding: 4px 0; align-items: baseline; }
+  .day-row b { color: var(--accent); font-variant-numeric: tabular-nums; min-width: 46px; }
+  .day-row button { background: transparent; color: var(--ink); text-align: left; padding: 0; }
+  .day-row button:hover { color: var(--accent); }
+  .demo-btn { border: 1px solid var(--line); color: var(--ink); padding: 8px 14px; }
+  .demo-btn:hover { border-color: var(--accent); }
+  .empty { color: var(--muted); padding: 48px 0; }
+
+  .fab-menu { position: fixed; right: 20px; bottom: calc(88px + env(safe-area-inset-bottom, 0px)); z-index: 30; display: grid; gap: 6px; width: min(260px, calc(100vw - 40px)); }
+  .fab-menu[hidden] { display: none; }
+  .fab-menu button { display: grid; gap: 2px; text-align: left; background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--accent); color: var(--ink); padding: 12px 14px; box-shadow: 0 8px 24px rgba(0,0,0,.6); }
+  .fab-menu button:hover { border-color: var(--accent); }
+  .fab-menu b { font-size: 15px; }
+  .fab-menu .fm-rem { border-left-color: var(--accent); }
+  .fab-menu .fm-rem b { color: var(--accent); }
+  .fab-menu .fm-rem:hover { border-color: var(--accent); background: rgba(25, 211, 197, .08); }
+  .fab-menu .fm-task { border-left-color: #FF8A3D; }
+  .fab-menu .fm-task b { color: #FF8A3D; }
+  .fab-menu .fm-task:hover { border-color: #FF8A3D; background: rgba(255, 138, 61, .08); }
+  /* Форма нової задачі — помаранчевий акцент */
+  #dlgItem.task { border-top-color: #FF8A3D; }
+  #dlgItem.task #fSpan button[aria-pressed="true"] { background: #FF8A3D; color: #000; }
+  #dlgItem.task .primary { background: #FF8A3D; }
+  #dlgItem.task input:focus, #dlgItem.task textarea:focus { border-color: #FF8A3D; }
+  #dlgItem.task :focus-visible { outline-color: #FF8A3D; }
+  .fab-menu span { font-size: 12px; color: var(--muted); }
+  .fab.open { background: var(--ink); color: var(--bg); }   /* квадрат лишається квадратом, змінюється лише колір і знак */
+  .fab { position: fixed; right: 20px; bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    background: var(--accent); color: var(--on-accent); font-size: 30px; width: 56px; height: 56px; }
+
+  /* Форма */
+  dialog { border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 0; padding: 0;
+    width: min(520px, calc(100% - 24px)); background: var(--card); color: var(--ink); }
+  dialog::backdrop { background: rgba(0,0,0,.75); }
+  form { padding: 20px; display: grid; gap: 14px; }
+  h2 { margin: 0; font-size: 20px; }
+  label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  input, select, textarea { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
+    border-radius: 0; padding: 10px 12px; width: 100%; }
+  input:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 64px; }
+  .month-box { display: grid; gap: 10px; }
+  .times-box { display: grid; gap: 6px; }
+  .times-box .lbl { font-size: 14px; color: var(--muted); }
+  #timesList { display: grid; gap: 6px; }
+  .time-row { display: grid; grid-template-columns: 1fr 44px; gap: 6px; }
+  .time-row.single { grid-template-columns: 1fr; }
+  .time-row button { background: transparent; border: 1px solid var(--line); color: var(--muted); }
+  .time-row button:hover { border-color: var(--danger); color: var(--danger); }
+  .add-time { justify-self: start; padding: 6px 0; color: var(--accent); }
+  input:disabled { cursor: not-allowed; }
+  .lead-own { display: grid; grid-template-columns: 90px 1fr; gap: 8px; margin-top: -6px; }
+  .lead { color: var(--ink); opacity: .8; }
+  .dest { font-size: 14px; color: var(--accent); margin-top: 2px; overflow-wrap: anywhere; }
+  .why { font-size: 14px; color: var(--ink); opacity: .75; margin-top: 2px; white-space: pre-line; overflow-wrap: anywhere; }
+  .seg { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); }
+  .seg button { background: transparent; color: var(--ink); padding: 8px 4px; font-size: 14px; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); font-weight: 700; }
+  .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .days button { background: var(--bg); color: var(--ink); border: 1px solid var(--line); padding: 10px 0; font-size: 14px; }
+  .days button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
+  .row { display: flex; gap: 8px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+  .check { display: flex; gap: 8px; align-items: center; color: var(--ink); }
+  .check input { width: auto; accent-color: var(--accent); }
+  .del { background: transparent; color: var(--danger); padding: 10px 0; }
+  .hint { font-size: 13px; color: var(--muted); margin: 0; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>WORK</h1>
+      <div class="today"><span id="today"></span><span class="clock" id="clock"></span></div>
+    </div>
+    <div class="head-btns">
+      <button class="ghost" id="btnStats">Статистика</button>
+      <button class="ghost" id="btnSettings">Налаштування</button>
+    </div>
+  </header>
+  <div id="status"></div>
+  <div class="layout">
+    <section class="cal" id="cal"></section>
+    <div id="list"></div>
+  </div>
+</div>
+<div class="fab-menu" id="fabMenu" hidden>
+  <button id="btnNewRem" class="fm-rem"><b>Регулярне нагадування</b></button>
+  <button id="btnNewTask" class="fm-task"><b>Нова задача</b></button>
+</div>
+<button class="fab" id="btnAdd" aria-label="Додати">+</button>
+
+<!-- Форма нагадування -->
+<dialog id="dlgItem">
+  <form id="formItem" method="dialog">
+    <h2 id="formTitle">Нове нагадування</h2>
+    <label>Що зробити
+      <input id="fTitle" required maxlength="200" placeholder="Наприклад: подати рапорт">
+    </label>
+    <label id="boxNote">Навіщо це робити <span class="hint">(необов’язково)</span>
+      <textarea id="fNote" maxlength="500" rows="2" placeholder="Наприклад: інакше не нарахують виплату"></textarea>
+    </label>
+    <label id="boxDest"><span id="destLbl">Кому здати або куди завантажити</span> <span class="hint" id="destOpt">(необов’язково)</span>
+      <input id="fDest" maxlength="200" placeholder="Наприклад: начальнику штабу, СЕДО">
+    </label>
+    <div>
+      <div class="seg" id="fType" role="group">
+        <button type="button" data-type="daily">Щодня</button>
+        <button type="button" data-type="weekly">Дні тижня</button>
+        <button type="button" data-type="monthly">Число</button>
+        <button type="button" data-type="once">Один раз</button>
+      </div>
+    </div>
+    <div id="boxWeekly" class="days"></div>
+    <div id="boxMonthly" class="month-box">
+      <label>Число місяця
+        <input id="fDay" type="number" min="1" max="31" value="1">
+        <span class="hint" id="dayHint">Якщо в місяці менше днів — нагадає в останній день.</span>
+      </label>
+      <label class="check"><input id="fLast" type="checkbox"> Останній день місяця <span class="hint">(28, 29, 30 або 31 — як випаде)</span></label>
+    </div>
+    <div id="boxTask" class="month-box">
+      <div class="seg" id="fSpan" style="grid-template-columns: 1fr 1fr">
+        <button type="button" data-big="0">Одним днем</button>
+        <button type="button" data-big="1">Кілька днів</button>
+      </div>
+      <input id="fBig" type="checkbox" hidden>
+      <label id="boxStart">Прилетіла — дата
+        <input id="fStart" type="date">
+      </label>
+    </div>
+    <label id="boxOnce"><span id="dateLbl">Дата</span>
+      <input id="fDate" type="date">
+    </label>
+    <div class="times-box">
+      <span class="lbl" id="timeLbl">Час виконання</span>
+      <div id="timesList"></div>
+      <button type="button" class="ghost add-time" id="btnAddTime">+ ще один час</button>
+      <span class="hint" id="timesHint">Кілька разів на день — додайте кілька часів. Кожен час відмічається «Виконав» окремо.</span>
+    </div>
+    <label id="boxLeadSel">Нагадати заздалегідь
+      <select id="fLead">
+        <option value="0">Не треба, лише в час виконання</option>
+        <option value="15">За 15 хвилин</option>
+        <option value="30">За 30 хвилин</option>
+        <option value="60">За 1 годину</option>
+        <option value="120">За 2 години</option>
+        <option value="1440">За 1 день</option>
+        <option value="2880">За 2 дні</option>
+        <option value="4320">За 3 дні</option>
+        <option value="10080">За тиждень</option>
+        <option value="custom">Свій варіант…</option>
+      </select>
+    </label>
+    <div id="boxLead" class="lead-own">
+      <input id="fLeadNum" type="number" min="1" max="99" value="1" aria-label="Скільки">
+      <select id="fLeadUnit" aria-label="Одиниці">
+        <option value="1">хвилин</option>
+        <option value="60">годин</option>
+        <option value="1440" selected>днів</option>
+      </select>
+    </div>
+    <p class="hint" id="leadHint" style="display:none"></p>
+    <label class="check" id="boxActive"><input id="fActive" type="checkbox" checked> Увімкнено</label>
+    <div class="row">
+      <button type="button" class="del" id="btnDelete">Видалити</button>
+      <span style="display:flex;gap:8px">
+        <button type="button" class="ghost" id="btnCancel">Скасувати</button>
+        <button type="submit" class="primary">Зберегти</button>
+      </span>
+    </div>
+  </form>
+</dialog>
+
+<!-- Налаштування підключення до GitHub -->
+<dialog id="dlgSettings">
+  <form id="formSettings" method="dialog">
+    <h2>Налаштування</h2>
+    <p class="hint">Зберігаються лише на цьому пристрої. На телефоні й ноутбуці заповнюються окремо.</p>
+    <label>Користувач GitHub <input id="sOwner" placeholder="наприклад, alex" autocapitalize="off"></label>
+    <label>Приватний репозиторій з даними <input id="sRepo" placeholder="work-data" autocapitalize="off"></label>
+    <label>Токен доступу <input id="sToken" type="password" placeholder="github_pat_…" autocomplete="off"></label>
+    <label>Тема ntfy (для пробного сповіщення) <input id="sTopic" autocapitalize="off"></label>
+    <div class="row">
+      <span style="display:flex;gap:4px;flex-wrap:wrap">
+        <button type="button" class="ghost" id="btnTest">Надіслати пробне</button>
+        <button type="button" class="ghost" id="btnWipe" style="color:var(--danger)">Стерти дані на пристрої</button>
+      </span>
+      <span style="display:flex;gap:8px">
+        <button type="button" class="ghost" id="btnSettingsCancel">Скасувати</button>
+        <button type="submit" class="primary">Зберегти</button>
+      </span>
+    </div>
+  </form>
+</dialog>
+
+<!-- Статистика й журнал -->
+<dialog id="dlgStats" class="wide">
+  <div class="stats">
+    <div class="row dlg-head">
+      <h2>Статистика</h2>
+      <div class="st-tools" id="statsTools"></div>
+      <button class="ghost" id="btnStatsClose">Закрити</button>
+    </div>
+    <div id="statsBody"></div>
+  </div>
+</dialog>
+
+<!-- Журнал: усі записи -->
+<dialog id="dlgLog" class="wide">
+  <div class="stats">
+    <div class="row dlg-head">
+      <div><h2>Журнал</h2><div class="rule" id="logCount"></div></div>
+      <span style="display:flex;gap:4px">
+        <button class="ghost" id="btnLogClear" style="color:var(--danger)">Очистити журнал</button>
+        <button class="ghost" id="btnLogClose">Закрити</button>
+      </span>
+    </div>
+    <div id="logBody"></div>
+  </div>
+</dialog>
+
+<!-- Підтвердження видалення -->
+<dialog id="dlgConfirm">
+  <form method="dialog">
+    <h2>Видалити нагадування?</h2>
+    <p class="title" id="confirmText" style="margin:0"></p>
+    <div class="row" style="justify-content:flex-end">
+      <button value="no" class="ghost">Скасувати</button>
+      <button value="yes" class="danger">Видалити</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+// ---------- Константи ----------
+// Текст «за скільки»: 30 хв, 2 год, 1 день, 3 дні, 1 тиждень (такий самий, як у скрипті пушів)
+function leadText(min) {
+  if (min % 10080 === 0) { const w = min / 10080; return w === 1 ? '1 тиждень' : `${w} тиж.`; }
+  if (min % 1440 === 0) { const d = min / 1440; return `${d} ${d === 1 ? 'день' : d < 5 ? 'дні' : 'днів'}`; }
+  if (min % 60 === 0) return `${min / 60} год`;
+  if (min > 60) return `${Math.floor(min / 60)} год ${min % 60} хв`;
+  return `${min} хв`;
+}
+// «середа, 14 жовтня» — браузер для uk-UA іноді дає «середу» (знахідний відмінок), тому складаємо самі
+const WD_FULL = ['неділя', 'понеділок', 'вівторок', 'середа', 'четвер', 'пʼятниця', 'субота'];
+const MONTHS_GEN = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
+const longDate = d => `${WD_FULL[d.getDay()]}, ${d.getDate()} ${MONTHS_GEN[d.getMonth()]}`;
+const DAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд']; // 1 = понеділок … 7 = неділя
+const FILE = 'reminders.json';
+const $ = id => document.getElementById(id);
+
+// ---------- Стан ----------
+let settings = loadSettings();
+let reminders = [];
+let log = [];          // журнал виконань: { id, title, due, doneAt, status, lateMin }
+let fileSha = null;     // потрібен GitHub, щоб перезаписати файл
+let editingId = null;
+let formType = 'daily';
+let formDays = [];
+
+function loadSettings() {
+  try { return JSON.parse(localStorage.getItem('work-settings') || '{}'); } catch { return {}; }
+}
+function saveSettings(s) {
+  try { localStorage.setItem('work-settings', JSON.stringify(s)); } catch {}
+}
+const connected = () => settings.owner && settings.repo && settings.token;
+
+// ---------- Робота з GitHub ----------
+// Текст у GitHub зберігається в base64; ці функції коректно працюють з кирилицею
+const toB64 = s => btoa(unescape(encodeURIComponent(s)));
+const fromB64 = s => decodeURIComponent(escape(atob(s.replace(/\n/g, ''))));
+
+async function gh(method, body) {
+  const url = `https://api.github.com/repos/${settings.owner}/${settings.repo}/contents/${FILE}`;
+  const res = await fetch(url + (method === 'GET' ? `?t=${Date.now()}` : ''), {
+    method,
+    headers: { Authorization: `Bearer ${settings.token}`, Accept: 'application/vnd.github+json' },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (res.status === 404 && method === 'GET') return null; // файлу ще немає
+  if (!res.ok) {
+    const why = { 401: 'токен невірний або прострочений', 403: 'токен не має права запису в репозиторій', 404: 'репозиторій не знайдено', 409: 'файл змінився на іншому пристрої — оновіть сторінку' }[res.status];
+    throw new Error(why || `GitHub відповів помилкою ${res.status}`);
+  }
+  return res.json();
+}
+
+// ---------- Кілька разів на день ----------
+// У файлі нагадування зберігається одне, з масивом times і позначками doneBy[час].
+// У застосунку розгортаємо його на «віртуальні» нагадування — по одному на кожен час
+// (id «abc@09:00», pid «abc»). Так уся логіка (календар, «Виконав», журнал, пуші) працює без змін.
+function expand(list) {
+  return list.flatMap(r => {
+    if (!r.times || r.times.length < 2) return [r];
+    return r.times.map(t => {
+      const v = { ...r, id: `${r.id}@${t}`, pid: r.id, time: t, nTimes: r.times.length, doneUntil: (r.doneBy || {})[t] ?? r.doneUntil };
+      delete v.times; delete v.doneBy;
+      return v;
+    });
+  });
+}
+function collapse(list) {
+  const out = [], groups = {};
+  for (const r of list) {
+    if (!r.pid) { out.push(r); continue; }
+    let g = groups[r.pid];
+    if (!g) {
+      g = groups[r.pid] = { ...r, id: r.pid, times: [], doneBy: {} };
+      delete g.pid; delete g.nTimes; delete g.doneUntil;
+      out.push(g);
+    }
+    g.times.push(r.time);
+    if (r.doneUntil) g.doneBy[r.time] = r.doneUntil;
+  }
+  for (const g of Object.values(groups)) { g.times.sort(); g.time = g.times[0]; }
+  return out;
+}
+
+// ---------- Локальний режим: дані в цьому браузері (поки GitHub не підключено) ----------
+const LOCAL_KEY = 'work-data';
+function loadLocal() {
+  try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || 'null') || { reminders: [], log: [] }; }
+  catch { return { reminders: [], log: [] }; }
+}
+function saveLocal() {
+  try { localStorage.setItem(LOCAL_KEY, JSON.stringify({ reminders: collapse(reminders), log })); return true; }
+  catch { return false; }
+}
+
+async function loadRemote() {
+  if (!connected()) {
+    const d = loadLocal();
+    reminders = expand(d.reminders || []); log = d.log || [];
+    if (cleanDemoLog()) saveLocal();   // залишки прикладу від попередніх версій
+    status('Дані зберігаються лише на цьому пристрої. Щоб бачити їх і на телефоні, і на комп’ютері та отримувати пуші — підключіть GitHub у «Налаштуваннях».');
+    render();
+    return;
+  }
+  status('Завантаження…');
+  try {
+    const data = await gh('GET');
+    if (data) {
+      fileSha = data.sha;
+      const json = JSON.parse(fromB64(data.content));
+      reminders = expand(json.reminders || []);
+      log = json.log || [];
+    } else { fileSha = null; reminders = []; log = []; }
+    status('');
+    // Перше підключення: у GitHub порожньо, а на пристрої є дані — переносимо їх
+    const local = loadLocal();
+    if (!reminders.length && !log.length && (local.reminders.length || local.log.length)) {
+      reminders = expand(local.reminders); log = local.log;
+      await saveRemote();
+      status(`Перенесено в GitHub: нагадувань ${reminders.length}, записів журналу ${log.length}.`);
+    }
+  } catch (e) { status('Не вдалося завантажити: ' + e.message, true); }
+  render();
+}
+
+// Записи журналу з «Заповнити прикладом» (id d1x…d5x) прибираємо, щойно відповідне нагадування видалено.
+// Власні записи залишаються навіть після видалення нагадування — це історія.
+const isDemoId = id => /^d\dx$/.test(id);
+function cleanDemoLog() {
+  const before = log.length;
+  log = log.filter(e => !isDemoId(e.id) || reminders.some(r => r.id === e.id));
+  return log.length !== before;
+}
+
+async function saveRemote() {
+  cleanDemoLog();
+  if (!connected()) {
+    if (!saveLocal()) status('Не вдалося зберегти: браузер не дає доступу до сховища.', true);
+    render();
+    return;
+  }
+  status('Збереження…');
+  try {
+    const content = toB64(JSON.stringify({ reminders: collapse(reminders), log }, null, 2) + '\n');
+    const res = await gh('PUT', { message: 'Оновлено нагадування', content, ...(fileSha ? { sha: fileSha } : {}) });
+    fileSha = res.content.sha;
+    status('');
+  } catch (e) { status('Не збережено: ' + e.message, true); }
+  render();
+}
+
+// ---------- Розклад ----------
+function matches(r, d) {
+  if (r.type === 'daily') return true;
+  if (r.type === 'weekly') return (r.days || []).includes(d.getDay() || 7);
+  if (r.type === 'monthly') {
+    const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    return d.getDate() === (r.last ? last : Math.min(r.day, last));   // r.last — щомісяця в останній день
+  }
+  if (r.type === 'once' || r.type === 'task') return r.date === ymd(d);   // задача — один раз, у термін
+  return false;
+}
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+// Найближчий момент спрацювання (шукаємо на 400 днів уперед)
+// Ключ конкретного спрацювання: «2026-10-05 08:30»
+const occKey = (r, d) => `${ymd(d)} ${r.time}`;
+// r.doneUntil — ключ останнього спрацювання, яке позначено «Виконав».
+// Усе до нього включно вважається виконаним, пуші для нього не надсилаються.
+const isDone = (r, d) => !!r.doneUntil && occKey(r, d) <= r.doneUntil;
+
+// Найближче майбутнє спрацювання, яке ще не позначене виконаним
+function nextRun(r) {
+  const now = new Date();
+  const [h, m] = r.time.split(':').map(Number);
+  for (let i = 0; i < 400; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, h, m);
+    if (d > now && matches(r, d) && !isDone(r, d)) return d;
+  }
+  return null;
+}
+
+// Останнє спрацювання, яке вже настало (шукаємо на 400 днів назад)
+function prevRun(r) {
+  const now = new Date();
+  const [h, m] = r.time.split(':').map(Number);
+  for (let i = 0; i < 400; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i, h, m);
+    if (d <= now && matches(r, d)) return d;
+  }
+  return null;
+}
+
+// Поточне завдання: прострочене (настало, але не виконане) або наступне
+function current(r) {
+  const p = prevRun(r);
+  if (p && !isDone(r, p)) return { d: p, late: true };
+  const n = nextRun(r);
+  return n ? { d: n, late: false } : null;
+}
+
+function markDone(r) {
+  const c = current(r);
+  if (!c) return;
+  const before = r.doneUntil;
+  const target = occKey(r, c.d);
+  const now = new Date();
+  const added = [];
+  // Рази між попередньою позначкою і цією, які так і не відмітили, — «Пропущено»
+  for (const d of missedBetween(r, before, c.d)) {
+    added.push({ id: r.id, title: r.title, due: occKey(r, d), status: 'missed' });
+  }
+  const lateMin = Math.max(0, Math.round((now - c.d) / 60000));
+  added.push({ id: r.id, title: r.title, due: target, doneAt: now.toISOString(),
+    status: lateMin > 0 ? 'late' : 'ontime', ...(lateMin > 0 ? { lateMin } : {}) });
+  log.push(...added);
+  r.doneUntil = target;
+  saveRemote();
+  const st = added[added.length - 1].status;
+  showToast(st === 'late' ? `Виконано із запізненням на ${durText(lateMin)}` : 'Виконано вчасно', () => {
+    if (before) r.doneUntil = before; else delete r.doneUntil;
+    log = log.filter(e => !added.includes(e));   // прибираємо щойно додані записи
+    saveRemote();
+  });
+}
+
+// Зняти «Виконав» з конкретного дня. Можна лише з останньої позначки:
+// усе до неї вважається виконаним, тож «дірку» посередині зробити не можна.
+function undoDone(r, d) {
+  const key = occKey(r, d);
+  if (r.doneUntil !== key) {
+    alert(`Спочатку скасуйте пізнішу позначку: ${r.doneUntil.split(' ')[0].split('-').reverse().join('.')}.`);
+    return;
+  }
+  // Повертаємо позначку на попереднє спрацювання (або на момент створення)
+  const [h, m] = r.time.split(':').map(Number);
+  let prev = null;
+  for (let i = 1; i < 400 && !prev; i++) {
+    const x = new Date(d.getFullYear(), d.getMonth(), d.getDate() - i, h, m);
+    if (matches(r, x)) prev = occKey(r, x);
+  }
+  if (r.created && (!prev || prev < r.created)) prev = r.created;
+  if (prev) r.doneUntil = prev; else delete r.doneUntil;
+  log = log.filter(e => !(e.id === r.id && e.due === key && e.status !== 'missed'));
+  saveRemote();
+  showToast('Позначку «Виконав» знято', () => {});
+  document.querySelector('.toast button')?.remove();   // тут відмінювати нічого — просто повідомлення
+}
+
+// Спрацювання строго між позначкою «from» (ключ) і датою «to», які залишились без відмітки
+function missedBetween(r, from, to) {
+  if (!from) return [];
+  const [fy, fm, fd] = from.slice(0, 10).split('-').map(Number);
+  const [h, m] = r.time.split(':').map(Number);
+  const res = [];
+  for (let i = 0; i < 400; i++) {
+    const d = new Date(fy, fm - 1, fd + i, h, m);
+    if (d >= to) break;
+    if (matches(r, d) && occKey(r, d) > from) res.push(d);
+  }
+  return res;
+}
+
+// Тривалість словами: 25 хв, 3 год 10 хв, 2 дн 4 год
+function durText(min) {
+  if (min < 60) return `${min} хв`;
+  if (min < 1440) return `${Math.floor(min / 60)} год` + (min % 60 ? ` ${min % 60} хв` : '');
+  return `${Math.floor(min / 1440)} дн` + (Math.floor(min % 1440 / 60) ? ` ${Math.floor(min % 1440 / 60)} год` : '');
+}
+
+let toastTimer = null;
+function showToast(text, undo) {
+  document.querySelector('.toast')?.remove();
+  clearTimeout(toastTimer);
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = '<span></span><button>Скасувати</button>';
+  t.firstChild.textContent = text;
+  t.querySelector('button').onclick = () => { t.remove(); undo(); };
+  document.body.appendChild(t);
+  toastTimer = setTimeout(() => t.remove(), 6000);
+}
+
+function describeRule(r) {
+  const base = describeRuleBase(r);
+  return r.pid ? `${base}, ${r.nTimes} ${r.nTimes < 5 ? 'рази' : 'разів'} на день` : base;
+}
+function describeRuleBase(r) {
+  if (r.type === 'daily') return 'Щодня';
+  if (r.type === 'weekly') {
+    const ds = [...(r.days || [])].sort();
+    if (ds.join() === '1,2,3,4,5') return 'По буднях';
+    if (ds.join() === '6,7') return 'На вихідних';
+    return ds.map(x => DAYS[x - 1]).join(', ') || 'Дні не вибрано';
+  }
+  if (r.type === 'monthly') return r.last ? 'Щомісяця, в останній день' : `Щомісяця, ${r.day}-го`;
+  if (r.type === 'once') return 'Один раз, ' + new Date(r.date + 'T00:00').toLocaleDateString('uk-UA');
+  if (r.type === 'task') {
+    const dm = k => k.slice(8, 10) + '.' + k.slice(5, 7);
+    return r.start ? `Задача на кілька днів: ${dm(r.start)}–${dm(r.date)}` : `Задача, термін ${dm(r.date)}`;
+  }
+  return '';
+}
+
+function describeNext(d) {
+  if (!d) return 'Більше не спрацює';
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const day = new Date(d); day.setHours(0, 0, 0, 0);
+  const diff = Math.round((day - today) / 864e5);
+  if (diff === 0) return 'Сьогодні';
+  if (diff === 1) return 'Завтра';
+  if (diff === -1) return 'Вчора';
+  return d.toLocaleDateString('uk-UA', { weekday: 'short', day: 'numeric', month: 'long' });
+}
+
+// ---------- Відображення ----------
+function status(text, isErr) {
+  $('status').innerHTML = text ? `<div class="note${isErr ? ' err' : ''}"></div>` : '';
+  if (text) $('status').firstChild.textContent = text;
+}
+
+// ---------- Графіки (SVG) ----------
+let animCharts = true;   // анімація росту — лише при відкритті та зміні періоду, не при кожному кліку
+const PALETTE = ['#19D3C5', '#F2B33D', '#7FE8DF', '#0E8C83', '#FF8A5B', '#B9C4C9', '#3E6E6A'];
+
+// Спільні градієнти: бірюзовий, жовтий
+const GRAD = `<defs>
+  <linearGradient id="gA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3FF0E2"/><stop offset="1" stop-color="#0B7F77"/></linearGradient>
+  <linearGradient id="gH" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD27A"/><stop offset="1" stop-color="#B9791A"/></linearGradient>
+  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>`;
+
+// Кільцева діаграма: segs = [{ v, color }], у центрі — big і small
+function donut(segs, big, small) {
+  const R = 54, SW = 16, C = 2 * Math.PI * R, total = segs.reduce((a, x) => a + x.v, 0) || 1;
+  const gap = segs.filter(x => x.v).length > 1 ? 2 : 0;
+  let off = 0;
+  const arcs = segs.filter(x => x.v).map(x => {
+    const len = x.v / total * C;
+    const a = `<circle class="dn-seg" cx="70" cy="70" r="${R}" fill="none" stroke="${x.color}" stroke-width="${SW}"
+      stroke-dasharray="${Math.max(0, len - gap)} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"/>`;
+    off += len; return a;
+  }).join('');
+  return `<svg class="donut${animCharts ? ' anim' : ''}" viewBox="0 0 140 140" role="img">
+    <circle cx="70" cy="70" r="${R}" fill="none" stroke="var(--line)" stroke-width="${SW}"/>${arcs}
+    <text x="70" y="70" text-anchor="middle" class="dn-big">${big}</text>
+    <text x="70" y="88" text-anchor="middle" class="dn-small">${small}</text></svg>`;
+}
+
+// Вертикальні стовпчики: items = [{ v, label, cls, key, top }]
+function barChart(items, { h = 170, avg = null, avgLabel = '', showVals = true, gridMax = null, vw = 360 } = {}) {
+  // vw — ширина «полотна»; w нижче — ширина стовпчика (тому параметр названо vw)
+  const W = vw, L = 22, B = 22, T = 16, n = items.length;
+  const max = gridMax || Math.max(1, ...items.map(x => x.v));
+  const ih = h - B - T, bw = (W - L) / n, w = bw * (n > 10 ? 0.72 : 0.62);
+  const y = v => T + ih - v / max * ih;
+  const ticks = [...new Set([0, Math.round(max / 2), max])];
+  let g = ticks.map(t => `<line x1="${L}" x2="${W}" y1="${y(t)}" y2="${y(t)}" class="grid"/><text x="${L - 6}" y="${y(t) + 4}" text-anchor="end" class="ax">${t}</text>`).join('');
+  items.forEach((x, i) => {
+    const cx = L + bw * i + bw / 2, bh = x.v / max * ih;
+    const fill = x.cls?.includes('heavy') ? 'url(#gH)' : 'url(#gA)';
+    g += `<g class="bc ${x.cls || ''}" ${x.key ? `data-k="${x.key}"` : ''}>
+      <rect class="hit" x="${L + bw * i}" y="${T - 8}" width="${bw}" height="${ih + 8 + B}"/>
+      ${x.v ? `<rect class="b" x="${cx - w / 2}" y="${y(x.v)}" width="${w}" height="${bh}" fill="${fill}" style="animation-delay:${i * (n > 10 ? 12 : 40)}ms"/>
+               <rect x="${cx - w / 2}" y="${y(x.v)}" width="${w}" height="2" class="cap"/>`
+            : `<rect x="${cx - w / 2}" y="${T + ih - 2}" width="${w}" height="2" class="zero"/>`}
+      ${showVals && x.v ? `<text x="${cx}" y="${y(x.v) - 5}" text-anchor="middle" class="val">${x.top ?? x.v}</text>` : ''}
+      <text x="${cx}" y="${h - 6}" text-anchor="middle" class="xl">${x.label}</text>
+      ${x.cls?.includes('today') ? `<rect x="${cx - 8}" y="${h - 3}" width="16" height="2" class="tmark"/>` : ''}
+    </g>`;
+  });
+  if (avg !== null) g += `<line x1="${L}" x2="${W}" y1="${y(avg)}" y2="${y(avg)}" class="avg"/><text x="${W}" y="${y(avg) - 4}" text-anchor="end" class="ax avg-t">${avgLabel}</text>`;
+  return `<svg class="bars${animCharts ? ' anim' : ''}" viewBox="0 0 ${W} ${h}" role="img">${GRAD}${g}</svg>`;
+}
+
+// Годинник на 24 години: довжина сектора = кількість справ у цю годину
+function clockChart(byHour) {
+  const cx = 110, cy = 110, r0 = 46, r1 = 92, max = Math.max(1, ...byHour);
+  const pt = (r, a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  const sector = (ra, rb, a0, a1) => {
+    const [x0, y0] = pt(ra, a0), [x1, y1] = pt(rb, a0), [x2, y2] = pt(rb, a1), [x3, y3] = pt(ra, a1);
+    return `M${x0},${y0} L${x1},${y1} A${rb},${rb} 0 0 1 ${x2},${y2} L${x3},${y3} A${ra},${ra} 0 0 0 ${x0},${y0}Z`;
+  };
+  const step = Math.PI * 2 / 24, g = 0.03;
+  let out = '';
+  byHour.forEach((v, h) => {
+    const a0 = -Math.PI / 2 + h * step + g, a1 = a0 + step - 2 * g;
+    out += `<path d="${sector(r0, r1, a0, a1)}" class="ck-track"/>`;
+    if (v) out += `<path d="${sector(r0, r0 + 8 + (r1 - r0 - 8) * v / max, a0, a1)}" fill="url(#gA)" class="ck-seg"><title>${String(h).padStart(2, '0')}:00 — ${v}</title></path>`;
+  });
+  [0, 6, 12, 18].forEach(h => {
+    const [x, y] = pt(r1 + 12, -Math.PI / 2 + h * step);
+    out += `<text x="${x}" y="${y + 4}" text-anchor="middle" class="ax">${String(h).padStart(2, '0')}</text>`;
+  });
+  const peak = byHour.indexOf(Math.max(...byHour));
+  const any = byHour.some(Boolean);
+  out += `<text x="${cx}" y="${cy + 2}" text-anchor="middle" class="dn-big" style="font-size:22px">${any ? String(peak).padStart(2, '0') + ':00' : '—'}</text>
+    <text x="${cx}" y="${cy + 20}" text-anchor="middle" class="dn-small">${any ? 'пікова година' : 'немає справ'}</text>`;
+  return `<svg class="clock${animCharts ? ' anim' : ''}" viewBox="0 0 220 220" role="img">${GRAD}${out}</svg>`;
+}
+
+// ---------- Статистика ----------
+let statsPeriod = 'month';
+const ST = { ontime: ['Вчасно', 'c-ok', 'var(--accent)', '#19D3C5'], late: ['Із запізненням', 'c-late', '#F2B33D', '#F2B33D'], missed: ['Пропущено', 'c-miss', 'var(--danger)', '#FF5A4E'] };
+
+// Усі справи за період: стан кожної (вчасно / із запізненням / не виконано / попереду) і розбивка по завданнях
+function periodCounts(period) {
+  // Період — календарний: цей тиждень (Пн–Нд), цей місяць, цей рік або весь час.
+  // Рахуємо не записи журналу, а ВСІ справи за період — так само, як у календарі.
+  logIndex = Object.fromEntries(log.map(e => [`${e.id}|${e.due}`, e.status]));
+  const now = new Date(), t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let from, to, caption;
+  if (period === 'week') {
+    from = new Date(t0); from.setDate(t0.getDate() - ((t0.getDay() || 7) - 1));
+    to = new Date(from); to.setDate(from.getDate() + 6);
+    caption = `${from.getDate()} ${MONTHS_GEN[from.getMonth()]} – ${to.getDate()} ${MONTHS_GEN[to.getMonth()]}`;
+  } else if (period === 'month') {
+    from = new Date(now.getFullYear(), now.getMonth(), 1); to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    caption = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+  } else if (period === 'year') {
+    from = new Date(now.getFullYear(), 0, 1); to = new Date(now.getFullYear(), 11, 31);
+    caption = `${now.getFullYear()} рік`;
+  } else {
+    const firsts = [...reminders.map(r => r.created), ...log.map(e => e.due)].filter(Boolean).sort();
+    from = firsts.length ? new Date(firsts[0].slice(0, 10) + 'T00:00') : new Date(t0);
+    to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    caption = `увесь час, до кінця ${MONTHS_GEN[now.getMonth()]}`;
+  }
+  const fromK = ymd(from), toK = ymd(to);
+
+  // Перебираємо дні періоду: кожна справа отримує стан
+  const KEYS = ['ontime', 'late', 'notdone', 'ahead'];
+  const MAP = { done: 'ontime', donelate: 'late', late: 'notdone', next: 'ahead' };
+  const cnt = { ontime: 0, late: 0, notdone: 0, ahead: 0 };
+  const by = {};
+  const add = (id, title, k) => { cnt[k]++; (by[id] ||= { title, ontime: 0, late: 0, notdone: 0, ahead: 0 })[k]++; };
+  for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
+    const day = new Date(d);
+    for (const r of reminders) {
+      if (!r.active || !matches(r, day)) continue;
+      const st = occState(r, day);
+      if (st !== 'skip') add(r.pid || r.id, r.title, MAP[st]);
+    }
+  }
+  // Записи журналу про вже видалені нагадування — теж історія, рахуємо їх
+  log.filter(e => !reminders.some(r => r.id === e.id) && e.due.slice(0, 10) >= fromK && e.due.slice(0, 10) <= toK)
+    .forEach(e => add(e.id.split('@')[0], e.title, e.status === 'missed' ? 'notdone' : e.status));
+
+  return { from, to, fromK, toK, caption, cnt, by, KEYS };
+}
+
+function renderStats() {
+  const { fromK, toK, caption, cnt, by, KEYS } = periodCounts(statsPeriod);
+  const total = KEYS.reduce((a, k) => a + cnt[k], 0);
+  const passed = cnt.ontime + cnt.late + cnt.notdone;          // справи, термін яких уже настав
+  const pctOf = (n, of) => of ? Math.round(n / of * 100) : 0;
+  const lateItems = log.filter(e => e.status === 'late' && e.due.slice(0, 10) >= fromK && e.due.slice(0, 10) <= toK);
+  const lateAvg = lateItems.length ? Math.round(lateItems.reduce((a, e) => a + (e.lateMin || 0), 0) / lateItems.length) : 0;
+  const LBL = { ontime: ['Вчасно', '#3DDC84'], late: ['Із запізненням', '#F2B33D'], notdone: ['Не виконано', '#FF5A4E'], ahead: ['Попереду', '#3A4A48'] };
+
+  const periods = [['week', 'Тиждень'], ['month', 'Місяць'], ['year', 'Рік'], ['all', 'Усе']];
+  // Шапка: період (стосується картки «Виконання») і кнопка журналу
+  $('statsTools').innerHTML = `<div class="seg" id="statsPeriod">${periods.map(([p, n]) => `<button type="button" data-p="${p}" aria-pressed="${p === statsPeriod}">${n}</button>`).join('')}</div>
+    <button class="ghost log-link" id="btnLog">Журнал <span>${log.length}</span></button>`;
+
+  // 1. Виконання за період
+  const exec = `<section class="card card-exec">
+    <div class="card-h"><h3>Виконання</h3><span class="rule">${caption}</span></div>
+    ${total ? `<div class="exec">
+      ${donut(KEYS.map(k => ({ v: cnt[k], color: LBL[k][1] })), passed ? pctOf(cnt.ontime, passed) + '%' : total, passed ? 'вчасно' : 'справ')}
+      <div class="dn-legend">${KEYS.map(k => `<div><i style="background:${LBL[k][1]}"></i><span>${LBL[k][0]}${k === 'late' && lateAvg ? `<small class="rule">у середньому на ${durText(lateAvg)}</small>` : ''}</span><b>${cnt[k]}</b><small>${k === 'ahead' ? '' : pctOf(cnt[k], passed) + '%'}</small></div>`).join('')}</div>
+    </div>` : '<p class="rule">За цей період справ немає.</p>'}
+    <div class="kpis k3">
+      <div class="kpi"><b>${total}</b><span>справ за період</span></div>
+      <div class="kpi"><b>${cnt.ontime + cnt.late}<small class="of"> з ${passed}</small></b><span>виконано</span></div>
+      <div class="kpi"><b>${reminders.filter(r => r.active && !(r.pid && reminders.find(x => x.pid === r.pid) !== r)).length}</b><span>активних нагадувань</span></div>
+    </div>
+  </section>`;
+
+  // 2–3. Наперед і розподіл
+  const L = renderLoad();
+  $('statsBody').innerHTML = `<div class="st-grid"><div class="st-left">${exec}${L.top}</div>${L.main}<div class="st-dist">${L.wd}${L.clock}</div></div>`;
+  document.querySelectorAll('#statsPeriod button').forEach(b => b.onclick = () => { statsPeriod = b.dataset.p; animCharts = true; renderStats(); });
+  $('btnLog').onclick = () => { renderLog(); $('dlgLog').showModal(); };
+  animCharts = false;   // наступні перемальовування — без анімації
+  document.querySelectorAll('#loadDays button').forEach(b => b.onclick = () => { loadDays = +b.dataset.d; loadSel = null; animCharts = true; renderStats(); });
+  document.querySelectorAll('#loadChart .bc').forEach(b => b.onclick = () => {
+    loadSel = b.dataset.k;
+    const y = $('dlgStats').scrollTop; renderStats(); $('dlgStats').scrollTop = y;   // не стрибаємо вгору
+  });
+}
+
+// ---------- Завантаженість: скільки справ заплановано наперед ----------
+let loadDays = 7;
+let loadSel = null;   // вибраний у графіку день (ключ дати)
+
+function renderLoad() {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const active = reminders.filter(r => r.active);
+  const avgTxt = v => (Math.round(v * 10) / 10).toString().replace('.', ',');
+  const fmt = d => d.toLocaleDateString('uk-UA', { weekday: 'short', day: 'numeric', month: 'short' });
+
+  // Збираємо всі спрацювання на період
+  const days = [];
+  const byTask = {};
+  const byHour = Array(24).fill(0);
+  const byWd = Array(7).fill(0), wdCount = Array(7).fill(0);
+  let pushes = 0;
+  for (let i = 0; i < loadDays; i++) {
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+    const ts = active.filter(r => matches(r, d)).sort((a, b) => a.time.localeCompare(b.time));
+    days.push({ d, key: ymd(d), ts, n: ts.length });
+    const wd = (d.getDay() || 7) - 1;
+    byWd[wd] += ts.length; wdCount[wd]++;
+    ts.forEach(r => {
+      byHour[+r.time.slice(0, 2)]++;
+      (byTask[r.pid || r.id] ||= { r, n: 0 }).n++;   // кілька часів одного завдання — одне завдання
+      pushes += r.lead ? 2 : 1;
+    });
+  }
+  const total = days.reduce((a, x) => a + x.n, 0);
+  const avg = total / loadDays;
+  const heavy = Math.max(2, Math.ceil(avg * 1.5));       // з якої кількості день вважаємо перевантаженим
+  const heavyDays = days.filter(x => x.n >= heavy && x.n > avg);
+  const free = days.filter(x => !x.n).length;
+  const busiest = days.reduce((a, x) => x.n > a.n ? x : a, days[0]);
+  const overdue = active.filter(r => current(r)?.late).length;
+  if (!days.some(x => x.key === loadSel)) loadSel = busiest.key;
+  const sel = days.find(x => x.key === loadSel);
+
+  // ---- Графік по днях: колір = навантаження, пунктир = середнє ----
+  const dayItems = days.map((x, i) => ({
+    v: x.n, key: x.key,
+    label: loadDays === 7 ? DAYS[(x.d.getDay() || 7) - 1] : (i === 0 || x.d.getDay() === 1 ? x.d.getDate() : ''),
+    cls: [i === 0 ? 'today' : '', x.n >= heavy && x.n > avg ? 'heavy' : '', x.key === loadSel ? 'sel' : ''].join(' ')
+  }));
+  const wide = innerWidth >= 1100;   // на комп'ютері графік ширший і нижчий
+  const cols = barChart(dayItems, { h: wide ? 230 : 190, vw: wide ? 760 : 360, avg, avgLabel: `сер. ${avgTxt(avg)}`, showVals: loadDays === 7 });
+
+  // ---- Вибраний день ----
+  const selHtml = `<div class="load-day">
+    <h3>${longDate(sel.d)}
+      <span class="rule">— ${sel.n ? `справ: ${sel.n}` : 'вільний день'}${sel.n >= heavy && sel.n > avg ? ', <span class="c-late">перевантажений</span>' : ''}</span></h3>
+    ${sel.ts.map(r => `<div class="day-row"><b>${r.time}</b><span>${esc(r.title)}${r.lead ? ` <span class="rule">· нагадає за ${leadText(r.lead)}</span>` : ''}${r.dest ? `<br><span class="rule">Куди: ${esc(r.dest)}</span>` : ''}</span></div>`).join('')}
+  </div>`;
+
+  // ---- Висновок одним реченням ----
+  const tips = [];
+  if (overdue) tips.push(`Спочатку закрийте прострочені: ${overdue}.`);
+  if (heavyDays.length) tips.push(`Найважчі дні: ${heavyDays.slice(0, 3).map(x => fmt(x.d)).join(', ')}${heavyDays.length > 3 ? ' та ін.' : ''} — від ${heavy} справ.`);
+  else if (total) tips.push('Навантаження рівне, перевантажених днів немає.');
+  const peakH = byHour.indexOf(Math.max(...byHour));
+  if (total) tips.push(`Найбільше справ припадає на ${String(peakH).padStart(2, '0')}:00–${String(peakH + 1).padStart(2, '0')}:00.`);
+
+  // ---- Що займає найбільше ----
+  const top = Object.values(byTask).sort((a, b) => b.n - a.n);
+  const topHtml = `<div class="donut-row">${donut(top.map((x, i) => ({ v: x.n, color: PALETTE[i % PALETTE.length] })), total, 'справ')}
+    <div class="dn-legend">${top.map((x, i) => `<div><i style="background:${PALETTE[i % PALETTE.length]}"></i><span>${esc(x.r.title)}<small class="rule">${describeRule(x.r)}</small></span><b>${x.n}</b><small>${Math.round(x.n / total * 100)}%</small></div>`).join('')}</div></div>`;
+
+  // ---- По тижнях (для 30 днів) ----
+  let weeksHtml = '';
+  if (loadDays === 30) {
+    const weeks = [];
+    days.forEach(x => {
+      if (!weeks.length || x.d.getDay() === 1) weeks.push({ from: x.d, to: x.d, n: 0 });
+      const w = weeks[weeks.length - 1]; w.to = x.d; w.n += x.n;
+    });
+    const wMax = Math.max(1, ...weeks.map(w => w.n));
+    const dm = d => `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+    weeksHtml = `<h3 class="mt">По тижнях</h3><div class="chart-card">${barChart(weeks.map(w => ({ v: w.n, label: `${dm(w.from)}–${dm(w.to)}` })), { h: wide ? 190 : 150, vw: wide ? 600 : 360 })}</div>`;
+  }
+
+  // ---- Дні тижня ----
+  const wdAvg = byWd.map((v, i) => wdCount[i] ? v / wdCount[i] : 0);
+  const wdMax = Math.max(...wdAvg) || 1;
+  const wdHtml = `<div class="chart-card">${barChart(DAYS.map((n, i) => ({ v: Math.round(wdAvg[i] * 10) / 10, top: avgTxt(wdAvg[i]), label: n,
+    cls: '' })), { h: wide ? 190 : 150, vw: wide ? 600 : 360, gridMax: Math.ceil(wdMax) || 1 })}</div>`;
+
+  // ---- Години доби: теплова смуга ----
+
+  return {
+    // Картка «Наперед»: перемикач, 4 цифри, висновок, графік, справи вибраного дня
+    main: `<section class="card card-load">
+      <div class="card-h"><h3>Завантаженість наперед</h3>
+        <div class="seg mini" id="loadDays">
+          <button type="button" data-d="7" aria-pressed="${loadDays === 7}">7 днів</button>
+          <button type="button" data-d="30" aria-pressed="${loadDays === 30}">30 днів</button>
+        </div></div>
+      <div class="kpis">
+        <div class="kpi"><b>${total}</b><span>справ</span></div>
+        <div class="kpi"><b>${avgTxt(avg)}</b><span>на день</span></div>
+        <div class="kpi"><b>${pushes}</b><span>сповіщень</span></div>
+        <div class="kpi"><b>${free}</b><span>вільних днів</span></div>
+      </div>
+      ${tips.length ? `<p class="tip">${tips.join(' ')}</p>` : ''}
+      <div class="chart-card" id="loadChart">${cols}</div>
+      <div class="legend"><span><i class="lg" style="background:linear-gradient(#3FF0E2,#0B7F77)"></i>звичайний</span><span><i class="lg" style="background:linear-gradient(#FFD27A,#B9791A)"></i>перевантажений, від ${heavy}</span><span><i class="lg line"></i>середнє</span><span>· натисніть стовпчик — справи дня</span></div>
+      ${selHtml}
+    </section>`,
+    top: `<section class="card"><div class="card-h"><h3>Що займає найбільше</h3><span class="rule">${loadDays} днів</span></div>
+      ${top.length ? topHtml : '<p class="rule">Справ немає.</p>'}</section>`,
+    wd: `<section class="card"><div class="card-h"><h3>За днями тижня</h3><span class="rule">у середньому</span></div>${wdHtml}${weeksHtml}</section>`,
+    clock: `<section class="card"><div class="card-h"><h3>За годинами доби</h3></div><div class="chart-card clock-card">${clockChart(byHour)}</div></section>`
+  };
+}
+
+// ---------- Журнал: окреме вікно з усіма записами ----------
+function taskTable(by, KEYS) {
+  const rows = Object.values(by).sort((a, b) => KEYS.reduce((x, k) => x + b[k], 0) - KEYS.reduce((x, k) => x + a[k], 0));
+  if (!rows.length) return '';
+  return `<div class="log-tasks"><h3>По завданнях <span class="rule">(за весь час)</span></h3><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Завдання</th><th class="n">Усього</th><th class="n">Вчасно</th><th class="n">Запізн.</th><th class="n">Не вик.</th><th class="n">Попер.</th></tr></thead><tbody>`
+    + rows.map(x => `<tr><td>${esc(x.title)}</td><td class="n">${KEYS.reduce((a, k) => a + x[k], 0)}</td><td class="n c-ok">${x.ontime}</td><td class="n c-late">${x.late}</td><td class="n c-miss">${x.notdone}</td><td class="n rule">${x.ahead}</td></tr>`).join('')
+    + `</tbody></table></div></div>`;
+}
+
+function renderLog() {
+  $('logCount').textContent = log.length ? `Записів: ${log.length}` : '';
+  const { by, KEYS } = periodCounts('all');
+  const tasks = taskTable(by, KEYS);
+  if (!log.length) {
+    $('logBody').innerHTML = `<div class="log-grid">${tasks}<div class="log-recs"><h3>Записи</h3><p class="rule">Записів ще немає. Натискайте «Виконав» у списку — тут з’являтимуться результати.</p></div></div>`;
+    return;
+  }
+  // Найновіші зверху
+  $('logBody').innerHTML = `<div class="log-grid">${tasks}<div class="log-recs"><h3>Записи</h3><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Термін</th><th>Завдання</th><th>Результат</th></tr></thead><tbody>`
+    + [...log].sort((a, b) => b.due.localeCompare(a.due)).map(e => {
+      const [d, t] = e.due.split(' ');
+      const res = `<span class="st ${ST[e.status][1]}">${ST[e.status][0]}</span>`
+        + (e.status === 'late' ? `<br><span class="rule">на ${durText(e.lateMin)}</span>` : '')
+        + (e.doneAt ? `<br><span class="rule">${new Date(e.doneAt).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>` : '');
+      return `<tr><td>${d.split('-').reverse().join('.')}<br><span class="rule">${t}</span></td><td>${esc(e.title)}</td><td>${res}</td></tr>`;
+    }).join('') + `</tbody></table></div></div></div>`;
+}
+const esc = t => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+$('btnStats').onclick = () => { animCharts = true; renderStats(); $('dlgStats').showModal(); };
+$('btnStatsClose').onclick = () => $('dlgStats').close();
+$('btnLogClose').onclick = () => $('dlgLog').close();
+$('btnLogClear').onclick = () => {
+  if (!log.length || !confirm(`Видалити всі записи журналу (${log.length})? Нагадування залишаться.`)) return;
+  log = [];
+  saveRemote();
+  renderLog(); renderStats();
+};
+
+// ---------- Календар ----------
+const MONTHS = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
+let calMonth = new Date(); calMonth.setDate(1);   // який місяць показано
+let selDay = ymd(new Date());                       // вибраний день (за замовчуванням — сьогодні)
+
+// Що треба зробити в конкретний день (лише увімкнені, відсортовано за часом)
+const dayTasks = d => reminders.filter(r => r.active && matches(r, d)).sort((a, b) => a.time.localeCompare(b.time));
+
+// Велика задача «у роботі» в день key: від початку до дня перед терміном, поки не натиснуто «Виконав»
+const taskDone = r => !!r.doneUntil && r.doneUntil >= `${r.date} ${r.time}`;
+const workOn = key => reminders.filter(r => r.type === 'task' && r.active && r.start && r.start <= key && key < r.date && !taskDone(r));
+const dmShort = k => k.slice(8, 10) + '.' + k.slice(5, 7);
+
+let calAnim = '';   // напрямок анімації при гортанні місяця: 'l' або 'r'
+
+// Стан однієї справи в конкретний день: виконано / прострочено / попереду / 'skip' — не показувати.
+// «Виконано» беремо з журналу. Якщо позначка є, а запису в журналі немає — це дні до створення
+// нагадування, їх у календарі не показуємо (інакше там стояли б галочки, яких ніхто не ставив).
+let logIndex = {};
+function occState(r, d) {
+  const e = logIndex[`${r.id}|${occKey(r, d)}`];
+  if (e) return e === 'missed' ? 'late' : e === 'late' ? 'donelate' : 'done';   // donelate — виконано, але із запізненням
+  if (isDone(r, d)) {
+    // Ховаємо лише дні ДО створення нагадування. Усе інше, що позначено «Виконав», — виконане,
+    // навіть якщо запису в журналі немає (наприклад, позначено до появи журналу або після зміни розкладу)
+    const beforeCreated = r.created ? occKey(r, d) <= r.created : d < new Date(new Date().setHours(0, 0, 0, 0));
+    return beforeCreated ? 'skip' : 'done';
+  }
+  const [h, m] = r.time.split(':').map(Number);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m) < new Date() ? 'late' : 'next';
+}
+
+function renderCal() {
+  logIndex = Object.fromEntries(log.map(e => [`${e.id}|${e.due}`, e.status]));
+  const box = $('cal');
+  const y = calMonth.getFullYear(), m = calMonth.getMonth();
+  const now = new Date(), todayStr = ymd(now);
+  const isCurMonth = y === now.getFullYear() && m === now.getMonth();
+
+  // Сітка завжди з понеділка; дні сусідніх місяців показуються блідо
+  const first = new Date(y, m, 1);
+  const start = new Date(y, m, 1 - ((first.getDay() || 7) - 1));
+  const weeks = Math.ceil(((first.getDay() || 7) - 1 + new Date(y, m + 1, 0).getDate()) / 7);
+
+  // Підсумок місяця для шапки
+  let mTotal = 0, mLate = 0;
+  for (let d = 1; d <= new Date(y, m + 1, 0).getDate(); d++) {
+    const day = new Date(y, m, d);
+    dayTasks(day).forEach(r => { const st = occState(r, day); if (st === 'skip') return; mTotal++; if (st === 'late') mLate++; });
+  }
+
+  let cells = DAYS.map((n, i) => `<div class="cal-wd${i > 4 ? ' we' : ''}">${n}</div>`).join('');
+  for (let i = 0; i < weeks * 7; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    const key = ymd(d);
+    const ts = dayTasks(d).filter(r => occState(r, d) !== 'skip');
+    const st = ts.map(r => occState(r, d));
+    const late = st.includes('late');
+    const cls = ['cal-day', d.getMonth() !== m ? 'other' : '', key < todayStr ? 'past' : '', key === todayStr ? 'today' : '',
+      key === selDay ? 'sel' : '', i % 7 > 4 ? 'we' : '',
+      new Set(ts.map(r => r.pid || r.id)).size >= 3 ? 'busy' : ''].join(' ');   // завантажений — від 3 різних завдань (кілька часів одного завдання — це одне)
+    // Позначка на кожну справу, час якої минув: зелена ✓ — вчасно, жовта ✓ — із запізненням, червоний ✕ — не виконано
+    const MARK = { done: '<i class="ck ok" title="Виконано вчасно">✓</i>', donelate: '<i class="ck lt" title="Виконано із запізненням">✓</i>',
+      late: '<i class="ck nd" title="Не виконано">✕</i>' };
+    const checks = st.map(x => MARK[x] || '').join('');
+    const flag = checks ? `<span class="cd-flags">${checks}</span>` : '';
+    // Смужка навантаження внизу: по сегменту на справу (до 4)
+    const segs = ts.slice(0, 3).map((r, j) => MARK[st[j]] || `<i class="seg-${st[j]}"></i>`).join('') + (ts.length > 3 ? `<em>+${ts.length - 3}</em>` : '');   // у вузьку клітинку телефона влазить 3
+    // На комп'ютері — до двох справ прямо в клітинці
+    // На комп'ютері в клітинці — лише час здачі (назва — при наведенні); до 4 часів, далі «+N»
+    const work = workOn(key);
+    const chips = ts.slice(0, 4).map((r, j) => `<span class="chip s-${st[j] === 'donelate' ? 'done' : st[j]}" title="${r.time} ${esc(r.title)}"><b>${r.time}</b></span>`).join('')
+
+    cells += `<button class="${cls}" data-k="${key}" aria-label="${longDate(d)}${ts.length ? `, справ: ${ts.length}` : ''}">
+      <span class="cd-num">${d.getDate()}${ts.length > 4 ? `<span class="cd-more m4">+${ts.length - 4}</span>` : ''}${ts.length > 2 ? `<span class="cd-more m2">+${ts.length - 2}</span>` : ''}</span>${flag}
+      <span class="cd-chips">${chips}</span>
+      ${work.length ? `<span class="cd-work" title="${work.map(r => `У роботі: ${esc(r.title)} — до ${dmShort(r.date)}`).join('\n')}">${work.length > 1 ? work.length + ' в роботі' : '→ ' + dmShort(work[0].date)}</span>` : ''}
+      <span class="cd-load">${segs}</span></button>`;
+  }
+
+  // Панель вибраного дня
+  const [sy, sm, sd] = selDay.split('-').map(Number);
+  const sel = new Date(sy, sm - 1, sd);
+  const tasks = dayTasks(sel).filter(r => occState(r, sel) !== 'skip');
+  const tag = { done: '<span class="cp-tag done">✓ вчасно</span>', donelate: '<span class="cp-tag donelate">✓ із запізненням</span>', late: '<span class="cp-tag late">✕ не виконано</span>', next: '' };
+  const rows = tasks.map(r => {
+    const s = occState(r, sel);   // для стилю рядка «donelate» поводиться як «done»
+    const done = s === 'done' || s === 'donelate';
+    // «Виконав» — лише для того разу, що зараз на черзі (прострочений або найближчий), щоб не перескакувати через інші
+    const cur = !done && r.active ? current(r) : null;
+    const canDo = !!cur && occKey(r, cur.d) === occKey(r, sel);
+    return `<div class="cp-row s-${s}${s === 'donelate' ? ' s-done' : ''}" data-id="${r.id}" role="button" tabindex="0">
+      <span class="cp-time">${r.time}</span>
+      <span class="cp-body"><span class="cp-title">${esc(r.title)}</span>
+        ${r.dest ? `<span class="cp-sub">Куди: ${esc(r.dest)}</span>` : ''}
+        ${s === 'next' && r.lead ? `<span class="cp-sub">нагадає за ${leadText(r.lead)}</span>` : ''}
+        ${done ? (() => {   // коли саме натиснули «Виконав» — щоб було видно, звідки позначка
+          const e = log.find(x => x.id === r.id && x.due === occKey(r, sel) && x.doneAt);
+          return `<span class="cp-sub">${e ? 'позначено ' + new Date(e.doneAt).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'позначено без запису в журналі'}</span>`;
+        })() : ''}</span>
+      <span class="cp-right">${tag[s]}${done ? `<button class="cp-undo" data-undo="${r.id}" title="Зняти позначку «Виконав»">скасувати</button>` : ''}${canDo ? `<button class="cp-done${r.type === 'task' ? ' task' : ''}" data-done="${r.id}">Виконав</button>` : ''}</span></div>`;
+  }).join('');
+  const workRows = workOn(selDay).map(r => {
+    const left = Math.round((new Date(r.date + 'T00:00') - new Date(selDay + 'T00:00')) / 864e5);
+    return `<div class="cp-row s-work" data-id="${r.id}" role="button" tabindex="0">
+      <span class="cp-time">→</span>
+      <span class="cp-body"><span class="cp-title">${esc(r.title)}</span>
+        <span class="cp-sub">у роботі, термін ${dmShort(r.date)} о ${r.time} — ${left === 1 ? 'завтра' : `через ${left} дн.`}</span></span>
+      <span class="cp-right"><span class="cp-tag work">у роботі</span><button class="cp-done task" data-done="${r.id}" title="Зробив раніше терміну">Виконав</button></span></div>`;
+  }).join('');
+  const diff = Math.round((new Date(sel).setHours(0, 0, 0, 0) - new Date(now).setHours(0, 0, 0, 0)) / 864e5);
+  const rel = diff === 0 ? 'Сьогодні' : diff === 1 ? 'Завтра' : diff === -1 ? 'Вчора' : '';
+
+  box.innerHTML = `<div class="cal-card">
+    <div class="cal-head">
+      <div class="cal-title"><span class="cal-m">${MONTHS[m]}</span><span class="cal-y">${y}</span>
+        <div class="cal-sum">${mTotal ? `справ у місяці: ${mTotal}` : 'у цьому місяці справ немає'}${mLate ? `, <span class="c-miss">прострочено: ${mLate}</span>` : ''}</div></div>
+      <div class="cal-navs">
+        ${isCurMonth && selDay === todayStr ? '' : '<button class="cal-today" id="calToday">Сьогодні</button>'}
+        <button class="cal-nav" id="calPrev" aria-label="Попередній місяць">‹</button>
+        <button class="cal-nav" id="calNext" aria-label="Наступний місяць">›</button>
+      </div>
+    </div>
+    <div class="cal-grid ${calAnim ? 'slide-' + calAnim : ''}" id="calGrid">${cells}</div>
+  </div>
+  <div class="cal-panel">
+    <div class="cp-head"><span class="cp-day">${sel.getDate()}</span>
+      <span class="cp-date"><b>${rel || WD_FULL[sel.getDay()]}</b><span>${rel ? WD_FULL[sel.getDay()] + ', ' : ''}${sel.getDate()} ${MONTHS_GEN[sel.getMonth()]}</span></span>
+      <span class="cp-count">${tasks.length ? `справ: ${tasks.length}` : ''}</span></div>
+    ${rows + workRows || '<div class="cp-empty">Вільний день. Натисніть «+», щоб додати справу.</div>'}
+  </div>`;
+  calAnim = '';
+
+  box.querySelectorAll('.cal-day').forEach(b => b.onclick = () => {
+    const k = b.dataset.k, [ky, km] = k.split('-').map(Number);
+    selDay = k;
+    if (ky !== y || km - 1 !== m) { calAnim = (ky * 12 + km - 1) > (y * 12 + m) ? 'l' : 'r'; calMonth = new Date(ky, km - 1, 1); }
+    renderCal();
+  });
+  box.querySelectorAll('.cp-row').forEach(b => {
+    b.onclick = () => openForm(reminders.find(r => r.id === b.dataset.id));
+    b.onkeydown = e => { if (e.key === 'Enter') b.onclick(); };
+  });
+  box.querySelectorAll('.cp-done').forEach(b => b.onclick = e => {
+    e.stopPropagation();   // щоб не відкривалась форма
+    markDone(reminders.find(r => r.id === b.dataset.done));
+  });
+  box.querySelectorAll('.cp-undo').forEach(b => b.onclick = e => {
+    e.stopPropagation();   // щоб не відкривалась форма редагування
+    undoDone(reminders.find(r => r.id === b.dataset.undo), sel);
+  });
+  $('calPrev').onclick = () => { calAnim = 'r'; calMonth = new Date(y, m - 1, 1); renderCal(); };
+  $('calNext').onclick = () => { calAnim = 'l'; calMonth = new Date(y, m + 1, 1); renderCal(); };
+  if ($('calToday')) $('calToday').onclick = () => {
+    const back = (now.getFullYear() * 12 + now.getMonth()) < (y * 12 + m);
+    if (!isCurMonth) calAnim = back ? 'r' : 'l';
+    calMonth = new Date(now.getFullYear(), now.getMonth(), 1); selDay = todayStr; renderCal();
+  };
+}
+
+function render() {
+  renderCal();
+  $('today').textContent = longDate(new Date());
+  const list = $('list');
+  list.innerHTML = '';
+  if (!reminders.length) {
+    list.innerHTML = '<div class="empty">Нагадувань поки немає.<br>Натисніть «+», щоб додати перше.<br><br><button class="ghost demo-btn" id="btnDemo">Заповнити прикладом</button></div>';
+    $('btnDemo').onclick = fillDemo;
+    return;
+  }
+  // Спочатку увімкнені — за найближчим часом, потім вимкнені
+  const sorted = reminders.map(r => ({ r, c: r.active ? current(r) : null }))
+    .map(x => ({ ...x, n: x.c ? x.c.d : null }))
+    .sort((a, b) => (b.r.active - a.r.active) || ((a.n || Infinity) - (b.n || Infinity)));
+  for (const { r, c, n } of sorted) {
+    const wrap = document.createElement('div');
+    wrap.className = 'swipe';
+    wrap.innerHTML = `<button class="swipe-del">Видалити</button>`;
+    const el = document.createElement('div');
+    el.className = 'item' + (r.active ? '' : ' off');
+    el.innerHTML = `<button class="rm-left" aria-label="Видалити" title="Видалити">✕</button><div class="time"></div><div><div class="title"></div><div class="why"></div><div class="dest"></div><div class="rule"></div><span class="next"></span></div><div class="acts"><button class="ghost ed">Змінити</button></div>`;
+    el.querySelector('.time').textContent = r.time;
+    el.querySelector('.title').textContent = r.title;
+    const why = el.querySelector('.why');
+    if (r.note) why.textContent = r.note; else why.remove();
+    const dest = el.querySelector('.dest');
+    if (r.dest) dest.textContent = 'Куди: ' + r.dest; else dest.remove();
+    el.querySelector('.rule').textContent = describeRule(r) + (r.lead ? `, нагадає за ${leadText(r.lead)}` : '');
+    const next = el.querySelector('.next');
+    if (!r.active) next.textContent = 'Вимкнено';
+    else if (!c) next.textContent = r.doneUntil ? 'Виконано' : 'Більше не спрацює';
+    else if (c.late) { next.textContent = 'Не виконано: ' + describeNext(c.d).toLowerCase(); next.classList.add('late'); }
+    else next.textContent = describeNext(c.d);
+    el.querySelector('.ed').onclick = () => openForm(r);
+    const del = () => askDelete(r, wrap);
+    el.querySelector('.rm-left').onclick = del;
+    wrap.querySelector('.swipe-del').onclick = del;
+    addSwipe(wrap, el);
+    wrap.appendChild(el);
+    list.appendChild(wrap);
+  }
+}
+
+// ---------- Видалення: підтвердження ----------
+function askDelete(r, wrap) {
+  const dlg = $('dlgConfirm');
+  $('confirmText').textContent = `«${r.title}»` + (r.pid ? ` — усі ${r.nTimes} рази на день` : '');
+  dlg.returnValue = '';
+  dlg.onclose = () => {
+    if (dlg.returnValue === 'yes') {
+      reminders = reminders.filter(x => x.id !== r.id && !(r.pid && x.pid === r.pid));
+      saveRemote();
+    } else closeSwipe(wrap);
+  };
+  dlg.showModal();
+}
+
+// ---------- Свайп уліво на телефоні ----------
+const OPEN = -108; // на скільки зсувається рядок — ширина червоної кнопки
+
+function closeSwipe(wrap) {
+  if (!wrap) return;
+  wrap.classList.remove('open');
+  wrap.querySelector('.item').style.transform = '';
+}
+
+function addSwipe(wrap, el) {
+  let x0 = 0, y0 = 0, base = 0, dx = 0, mode = null; // mode: 'h' — свайп, 'v' — прокрутка
+  el.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    x0 = t.clientX; y0 = t.clientY; dx = 0; mode = null;
+    base = wrap.classList.contains('open') ? OPEN : 0;
+    // Відкритий інший рядок — закриваємо
+    document.querySelectorAll('.swipe.open').forEach(w => { if (w !== wrap) closeSwipe(w); });
+  }, { passive: true });
+  el.addEventListener('touchmove', e => {
+    const t = e.touches[0];
+    const mx = t.clientX - x0, my = t.clientY - y0;
+    if (!mode && (Math.abs(mx) > 8 || Math.abs(my) > 8)) mode = Math.abs(mx) > Math.abs(my) ? 'h' : 'v';
+    if (mode !== 'h') return;
+    e.preventDefault(); // не даємо сторінці прокручуватись під час свайпу
+    dx = mx;
+    el.classList.add('dragging');
+    el.style.transform = `translateX(${Math.min(0, Math.max(OPEN - 24, base + dx))}px)`;
+  }, { passive: false });
+  el.addEventListener('touchend', () => {
+    el.classList.remove('dragging');
+    if (mode !== 'h') return;
+    const pos = base + dx;
+    if (pos < OPEN / 2) { wrap.classList.add('open'); el.style.transform = `translateX(${OPEN}px)`; }
+    else closeSwipe(wrap);
+  });
+  // Дотик по відкритому рядку — просто закрити, нічого не відкривати
+  el.addEventListener('click', e => {
+    if (wrap.classList.contains('open')) { e.stopPropagation(); e.preventDefault(); closeSwipe(wrap); }
+  }, true);
+}
+
+// Заповнити прикладом (кнопка на порожньому екрані) — щоб було що поклацати
+function fillDemo() {
+  const since = ymd(new Date(Date.now() - 864e5)) + ' 23:59';   // приклад: ніби все до вчора вже відмічено
+  reminders = [
+    { id: 'd1x', title: 'Подати рапорт', note: 'Інакше не потрапить у наказ цього тижня', dest: 'Начальнику штабу, через СЕДО', type: 'weekly', days: [1, 3, 5], time: '08:30', lead: 60, active: true },
+    { id: 'd2x', title: 'Оплатити інтернет', type: 'monthly', day: 15, time: '10:00', lead: 2880, active: true },
+    { id: 'd3x', title: 'Випити воду', type: 'daily', time: '13:00', active: true },
+    { id: 'd4x', title: 'Техогляд машини', type: 'once', date: ymd(new Date(Date.now() + 9 * 864e5)), time: '09:00', active: true },
+    { id: 'd5x', title: 'Заправка', type: 'weekly', days: [6], time: '11:00', active: false }
+  ];
+  reminders.forEach(r => r.doneUntil = since);
+  // Приклад журналу за останні дні
+  const ago = n => ymd(new Date(Date.now() - n * 864e5));
+  log = [
+    { id: 'd1x', title: 'Подати рапорт', due: `${ago(12)} 08:30`, doneAt: new Date(Date.now() - 12 * 864e5).toISOString(), status: 'ontime' },
+    { id: 'd1x', title: 'Подати рапорт', due: `${ago(10)} 08:30`, status: 'missed' },
+    { id: 'd1x', title: 'Подати рапорт', due: `${ago(8)} 08:30`, doneAt: new Date(Date.now() - 8 * 864e5).toISOString(), status: 'late', lateMin: 95 },
+    { id: 'd2x', title: 'Оплатити інтернет', due: `${ago(20)} 10:00`, doneAt: new Date(Date.now() - 21 * 864e5).toISOString(), status: 'ontime' },
+    { id: 'd3x', title: 'Випити воду', due: `${ago(3)} 13:00`, doneAt: new Date(Date.now() - 3 * 864e5).toISOString(), status: 'ontime' },
+    { id: 'd3x', title: 'Випити воду', due: `${ago(2)} 13:00`, doneAt: new Date(Date.now() - 2 * 864e5).toISOString(), status: 'late', lateMin: 40 },
+    { id: 'd3x', title: 'Випити воду', due: `${ago(1)} 13:00`, doneAt: new Date(Date.now() - 864e5).toISOString(), status: 'ontime' }
+  ];
+  saveRemote();
+}
+
+// ---------- Форма нагадування ----------
+// «Останній день місяця» вимикає поле числа
+function updateLast() {
+  const on = $('fLast').checked;
+  $('fDay').disabled = on;
+  $('fDay').closest('label').style.opacity = on ? .4 : 1;
+}
+$('fLast').addEventListener('change', updateLast);
+
+function setType(t) {
+  formType = t;
+  // «Задача» має власну форму: без вибору розкладу, з терміном і (за бажанням) початком
+  $('fType').parentElement.style.display = t === 'task' ? 'none' : '';
+  $('boxTask').style.display = t === 'task' ? '' : 'none';
+  const task = t === 'task';
+  $('dlgItem').classList.toggle('task', task);
+  $('dateLbl').textContent = task ? ($('fBig').checked ? 'Здати — кінцева дата' : 'Здати — дата') : 'Дата';
+  // Нова задача: лише що зробити, коли здати і кому. Решту полів ховаю
+  ['boxNote', 'boxActive'].forEach(id => $(id).style.display = task ? 'none' : '');
+  $('destLbl').textContent = task ? 'Кому здати' : 'Кому здати або куди завантажити';
+  $('destOpt').style.display = task ? 'none' : '';
+  // Порядок у задачі: … до якої години → кому здати → за скільки нагадати
+  const timesBox = $('timesList').closest('.times-box');
+  if (task) { timesBox.after($('boxDest')); $('boxDest').after($('boxLeadSel'), $('boxLead'), $('leadHint')); }
+  else { $('boxNote').after($('boxDest')); timesBox.after($('boxLeadSel'), $('boxLead'), $('leadHint')); }
+  $('boxLeadSel').firstChild.textContent = task ? 'Нагадати до здачі за ' : 'Нагадати заздалегідь';
+  updateLead();
+  // У задачі один термін — кількох часів не буває
+  $('timeLbl').textContent = task ? 'До якої години' : 'Час виконання';
+  $('btnAddTime').style.display = $('timesHint').style.display = t === 'task' ? 'none' : '';
+  if (t === 'task' && readTimesRaw().length > 1) drawTimes([readTimes()[0]]);
+  document.querySelectorAll('#fType button').forEach(b => b.setAttribute('aria-pressed', b.dataset.type === t));
+  $('boxWeekly').style.display = t === 'weekly' ? '' : 'none';
+  $('boxMonthly').style.display = t === 'monthly' ? '' : 'none';
+  $('boxOnce').style.display = t === 'once' || t === 'task' ? '' : 'none';
+}
+
+function drawDays() {
+  $('boxWeekly').innerHTML = '';
+  DAYS.forEach((name, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = name;
+    b.setAttribute('aria-pressed', formDays.includes(i + 1));
+    b.onclick = () => {
+      formDays = formDays.includes(i + 1) ? formDays.filter(x => x !== i + 1) : [...formDays, i + 1];
+      drawDays();
+    };
+    $('boxWeekly').appendChild(b);
+  });
+}
+
+// Поля часу: перше має id fTime (на нього спирається підказка «заздалегідь»)
+function drawTimes(times) {
+  $('timesList').innerHTML = '';
+  times.forEach((t, i) => {
+    const row = document.createElement('div');
+    row.className = 'time-row' + (times.length > 1 ? '' : ' single');   // один час — поле на всю ширину
+    row.innerHTML = `<input type="time" class="f-time" required value="${t}"${i === 0 ? ' id="fTime"' : ''}>`
+      + (times.length > 1 ? '<button type="button" aria-label="Прибрати цей час">✕</button>' : '');
+    row.querySelector('input').addEventListener('input', updateLead);
+    const del = row.querySelector('button');
+    if (del) del.onclick = () => drawTimes(readTimesRaw().filter((_, j) => j !== i));
+    $('timesList').appendChild(row);
+  });
+}
+const readTimesRaw = () => [...document.querySelectorAll('.f-time')].map(i => i.value);
+const readTimes = () => [...new Set(readTimesRaw().filter(Boolean))].sort();
+$('btnAddTime').onclick = () => {
+  const ts = readTimesRaw();
+  const last = ts[ts.length - 1] || '09:00';
+  const h = Math.min(23, +last.slice(0, 2) + 3);   // новий час — на 3 години пізніше за останній
+  drawTimes([...ts, `${String(h).padStart(2, '0')}:${last.slice(3, 5)}`]);
+  updateLead();
+};
+
+function updateBig() {
+  const big = $('fBig').checked;
+  $('boxStart').style.display = big ? '' : 'none';
+  document.querySelectorAll('#fSpan button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.big === (big ? '1' : '0'))));
+  if (formType === 'task') $('dateLbl').textContent = big ? 'Здати — кінцева дата' : 'Здати — дата';
+}
+document.querySelectorAll('#fSpan button').forEach(b => b.onclick = () => { $('fBig').checked = b.dataset.big === '1'; updateBig(); });
+
+function openForm(r, mode) {
+  // Нагадування з кількома часами редагуємо цілком (усі часи разом)
+  const group = r && r.pid ? reminders.filter(x => x.pid === r.pid) : null;
+  editingId = r ? (r.pid || r.id) : null;
+  const isTask = mode === 'task' || (r && r.type === 'task');
+  $('formTitle').textContent = isTask ? (r ? 'Змінити задачу' : 'Нова задача') : (r ? 'Змінити нагадування' : 'Нове нагадування');
+  $('fTitle').value = r ? r.title : '';
+  $('fNote').value = r && r.note ? r.note : '';
+  $('fDest').value = r && r.dest ? r.dest : '';
+  drawTimes(group ? group.map(x => x.time).sort() : [r ? r.time : '09:00']);
+  const lead = r ? (r.lead || 0) : (mode === 'task' ? 60 : 0);   // новій задачі одразу пропоную «за 1 годину»
+  const preset = [...$('fLead').options].some(o => o.value === String(lead));
+  $('fLead').value = preset ? String(lead) : 'custom';
+  if (!preset) {  // свій варіант — розкладаємо на число й одиниці
+    const unit = lead % 1440 === 0 ? 1440 : lead % 60 === 0 ? 60 : 1;
+    $('fLeadUnit').value = String(unit); $('fLeadNum').value = lead / unit;
+  }
+  updateLead();
+  $('fDay').value = r && r.day ? r.day : new Date().getDate();
+  $('fLast').checked = !!(r && r.last);
+  updateLast();
+  $('fDate').value = r && r.date ? r.date : ymd(new Date());
+  $('fBig').checked = !!(r && r.start);
+  $('fStart').value = r && r.start ? r.start : ymd(new Date());
+  updateBig();
+  $('fActive').checked = r ? r.active : true;
+  formDays = r && r.days ? [...r.days] : [new Date().getDay() || 7];
+  $('btnDelete').style.visibility = r ? 'visible' : 'hidden';
+  setType(r ? r.type : (mode === 'task' ? 'task' : 'daily'));
+  drawDays();
+  $('dlgItem').showModal();
+}
+
+$('formItem').onsubmit = e => {
+  e.preventDefault();
+  if (formType === 'weekly' && !formDays.length) { alert('Виберіть хоча б один день тижня.'); return; }
+  const times = readTimes();
+  if (!times.length) { alert('Вкажіть час виконання.'); return; }
+  const gid = editingId || Date.now().toString(36);
+  const base = {
+    title: $('fTitle').value.trim(),
+    note: $('fNote').value.trim() || undefined, // порожнє поле не зберігаємо
+    dest: $('fDest').value.trim() || undefined,
+    type: formType,
+    lead: readLead() || undefined, // 0 — не зберігаємо
+    active: $('fActive').checked
+  };
+  if (formType === 'weekly') base.days = [...formDays].sort();
+  if (formType === 'monthly') {
+    if ($('fLast').checked) base.last = true;
+    else base.day = Math.min(31, Math.max(1, +$('fDay').value || 1));
+  }
+  if (formType === 'once' || formType === 'task') base.date = $('fDate').value;
+  if (formType === 'task' && $('fBig').checked) {
+    if ($('fStart').value > $('fDate').value) { alert('Початок не може бути пізніше за термін.'); return; }
+    if ($('fStart').value < $('fDate').value) base.start = $('fStart').value;   // однаковий день — це звичайна разова задача
+  }
+
+  // Старі записи цього нагадування (один або кілька часів)
+  const old = editingId ? reminders.filter(r => r.id === editingId || r.pid === editingId) : [];
+  const now = new Date();
+  const nowKey = `${ymd(now)} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const created = old[0]?.created || nowKey;   // момент створення — дні до нього в календарі не показуємо
+  const made = times.map(t => {
+    const prev = old.find(o => o.time === t) || (old.length === 1 && times.length === 1 ? old[0] : null);
+    const item = { ...base, time: t, created,
+      // Позначки «Виконав» зберігаємо для того самого часу; новий час — рахуємо від цієї хвилини
+      doneUntil: prev?.doneUntil || nowKey };
+    if (times.length > 1) Object.assign(item, { id: `${gid}@${t}`, pid: gid, nTimes: times.length });
+    else item.id = gid;
+    return item;
+  });
+  const pos = editingId ? reminders.findIndex(r => r.id === editingId || r.pid === editingId) : -1;
+  const rest = reminders.filter(r => !old.includes(r));
+  reminders = pos < 0 ? [...rest, ...made] : [...rest.slice(0, pos), ...made, ...rest.slice(pos)];
+  $('dlgItem').close();
+  saveRemote();
+};
+
+// ---------- Нагадати заздалегідь ----------
+function readLead() {
+  if ($('fLead').value !== 'custom') return +$('fLead').value;
+  return Math.max(1, Math.min(99, +$('fLeadNum').value || 1)) * +$('fLeadUnit').value;
+}
+function updateLead() {
+  $('boxLead').style.display = $('fLead').value === 'custom' ? '' : 'none';
+  const l = readLead(), hint = $('leadHint');
+  hint.style.display = l ? '' : 'none';
+  const ts = readTimes();
+  hint.textContent = l ? (ts.length > 1 ? `На кожен час — два нагадування: за ${leadText(l)} до нього і в сам час.`
+    : formType === 'task' ? `Нагадаю за ${leadText(l)} до здачі і ще раз о ${ts[0] || ''}.`
+    : `Буде два нагадування: за ${leadText(l)} до терміну і о ${ts[0] || ''}.`) : '';
+}
+['fLead', 'fLeadNum', 'fLeadUnit'].forEach(id => $(id).addEventListener('input', updateLead));
+
+$('btnDelete').onclick = () => {
+  if (!confirm('Видалити це нагадування?')) return;
+  reminders = reminders.filter(r => r.id !== editingId && r.pid !== editingId);
+  $('dlgItem').close();
+  saveRemote();
+};
+$('btnCancel').onclick = () => $('dlgItem').close();
+document.querySelectorAll('#fType button').forEach(b => b.onclick = () => setType(b.dataset.type));
+// «+»: меню — нова задача або регулярне нагадування
+function fabMenu(open) {
+  $('fabMenu').hidden = !open;
+  $('btnAdd').classList.toggle('open', open);
+  $('btnAdd').textContent = open ? '✕' : '+';
+}
+$('btnAdd').onclick = e => { e.stopPropagation(); fabMenu($('fabMenu').hidden); };
+document.addEventListener('click', e => { if (!$('fabMenu').hidden && !$('fabMenu').contains(e.target)) fabMenu(false); });
+$('btnNewTask').onclick = () => { fabMenu(false); openForm(null, 'task'); };
+$('btnNewRem').onclick = () => { fabMenu(false); openForm(null); };
+
+// ---------- Налаштування ----------
+$('btnSettings').onclick = () => {
+  $('sOwner').value = settings.owner || '';
+  $('sRepo').value = settings.repo || 'work-data';
+  $('sToken').value = settings.token || '';
+  $('sTopic').value = settings.topic || '';
+  $('dlgSettings').showModal();
+};
+$('btnSettingsCancel').onclick = () => $('dlgSettings').close();
+$('formSettings').onsubmit = e => {
+  e.preventDefault();
+  settings = {
+    owner: $('sOwner').value.trim(), repo: $('sRepo').value.trim(),
+    token: $('sToken').value.trim(), topic: $('sTopic').value.trim()
+  };
+  saveSettings(settings);
+  $('dlgSettings').close();
+  loadRemote();
+};
+$('btnWipe').onclick = () => {
+  if (!confirm('Стерти всі нагадування й журнал, збережені на цьому пристрої? Дані в GitHub це не зачепить.')) return;
+  try { localStorage.removeItem(LOCAL_KEY); } catch {}
+  $('dlgSettings').close();
+  loadRemote();
+};
+$('btnTest').onclick = async () => {
+  const topic = $('sTopic').value.trim();
+  if (!topic) { alert('Спочатку вкажіть тему ntfy.'); return; }
+  try {
+    const res = await fetch('https://ntfy.sh/', { method: 'POST',
+      body: JSON.stringify({ topic, title: 'WORK', message: 'Пробне сповіщення — усе працює', tags: ['white_check_mark'] }) });
+    alert(res.ok ? 'Надіслано. Перевірте телефон.' : 'ntfy відповів помилкою ' + res.status);
+  } catch { alert('Немає зв’язку з ntfy.sh'); }
+};
+
+// Оновлюємо «наступне спрацювання» щохвилини та при поверненні на вкладку
+setInterval(() => { if (!document.querySelector('.swipe.open')) render(); }, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) loadRemote(); });
+// Годинник у шапці: оновлюється щосекунди, дата — опівночі
+function tick() {
+  const n = new Date();
+  $('clock').textContent = n.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const d = longDate(n);
+  if ($('today').textContent !== d) { $('today').textContent = d; if ($('today').dataset.set) render(); $('today').dataset.set = 1; }
+}
+tick(); setInterval(tick, 1000);
+
+// Висоту шапки передаю в CSS, щоб закріплений календар ставав одразу під нею
+const setHeadH = () => document.documentElement.style.setProperty('--head-h', Math.ceil(document.querySelector('header').getBoundingClientRect().height) + 'px');
+setHeadH(); new ResizeObserver(setHeadH).observe(document.querySelector('header'));   // висота змінюється, коли довантажується шрифт
+loadRemote();
+</script>
+</body>
+</html>
